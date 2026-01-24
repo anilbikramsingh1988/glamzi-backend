@@ -16,9 +16,9 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node index.js",
-    "generate-sitemaps": "node ../scripts/generate-sitemaps.js",
+    "start": "node index.js",
+    "generate-sitemaps": "node scripts/generate-sitemaps.js",
     "daily-close": "node workers/dailyCloseWorker.js",
     "daily-settlement": "node workers/dailySettlementWorker.js"
   },
