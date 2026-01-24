@@ -174,6 +174,7 @@ const allowedOrigins = [
 
   process.env.FRONTEND_URL,
   process.env.ADMIN_URL,
+  process.env.SELLER_URL,
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}:5173` : null,
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}:8000` : null,
@@ -184,6 +185,15 @@ const corsOptions = {
   origin(origin, callback) {
     // Allow non-browser clients (mobile app, Postman, curl) with no Origin header
     if (!origin) return callback(null, true);
+
+    // Allow glamzi/glamzibeauty custom domains
+    if (
+      origin.endsWith(".glamzibeauty.com") ||
+      origin === "https://glamzi.com" ||
+      origin === "http://glamzi.com"
+    ) {
+      return callback(null, true);
+    }
 
     if (allowedOrigins.includes(origin)) return callback(null, true);
 
