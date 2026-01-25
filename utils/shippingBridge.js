@@ -39,7 +39,9 @@ import { RETURN_STATUS } from "./returnsStatus.js";
  */
 
 const SHIPPING_SERVICE_URL_RAW = (process.env.SHIPPING_SERVICE_URL || "http://localhost:4001").trim();
-const SHIPPING_SERVICE_URL = SHIPPING_SERVICE_URL_RAW.replace(/\/+$/, "");
+const SHIPPING_SERVICE_URL = SHIPPING_SERVICE_URL_RAW
+  .replace(/\/+$/, "")
+  .replace(/\/api$/i, "");
 const SHIPPING_INTERNAL_TOKEN = (process.env.SHIPPING_INTERNAL_TOKEN || "").trim();
 const SHIPPING_PARTNER = (process.env.SHIPPING_PARTNER || "everestx").trim() || "everestx";
 const SHIPPING_TIMEOUT_MS = Number(process.env.SHIPPING_TIMEOUT_MS || 12000);
