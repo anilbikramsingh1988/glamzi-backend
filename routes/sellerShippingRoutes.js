@@ -19,7 +19,8 @@ const SHIPPING_INTERNAL_TOKEN = String(process.env.SHIPPING_INTERNAL_TOKEN || ""
 
 function shippingBaseUrl() {
   if (!SHIPPING_SERVICE_URL) return null;
-  return SHIPPING_SERVICE_URL.replace(/\/+$/, "");
+  // Normalize to avoid accidental double /api/api when env contains /api suffix
+  return SHIPPING_SERVICE_URL.replace(/\/+$/, "").replace(/\/api$/i, "");
 }
 
 function requireShippingConfig(res) {
