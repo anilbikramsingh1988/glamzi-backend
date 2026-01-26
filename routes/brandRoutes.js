@@ -53,6 +53,24 @@ const isAdminOrSuperAdmin = (req, res, next) => {
   return res.status(403).json({ message: "Admin access only" });
 };
 
+const normalizeBrandLogoUrl = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("/uploads/")) return raw;
+  if (raw.startsWith("uploads/")) return `/${raw}`;
+  const uploadsIndex = raw.indexOf("/uploads/");
+  if (uploadsIndex !== -1) return raw.slice(uploadsIndex);
+  return raw;
+};
+
+const withNormalizedLogo = (brand) => {
+  if (!brand) return brand;
+  return {
+    ...brand,
+    logoUrl: normalizeBrandLogoUrl(brand.logoUrl),
+  };
+};
+
 // ================== PUBLIC BRANDS ==================
 
 /**
@@ -68,7 +86,7 @@ router.get("/brands", async (req, res) => {
       .sort({ name: 1 })
       .toArray();
 
-    res.json({ brands });
+    res.json({ brands: brands.map(withNormalizedLogo) });
   } catch (err) {
     console.error("Error fetching public brands:", err);
     res.status(500).json({
@@ -99,7 +117,7 @@ router.get("/brands/:id", async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    res.json({ brand });
+    res.json({ brand: withNormalizedLogo(brand) });
   } catch (err) {
     console.error("Error fetching brand by id:", err);
     res.status(500).json({
@@ -131,7 +149,7 @@ router.get("/brands/slug/:slug", async (req, res) => {
       return res.status(404).json({ message: "Brand not found" });
     }
 
-    res.json({ brand });
+    res.json({ brand: withNormalizedLogo(brand) });
   } catch (err) {
     console.error("Error fetching brand by slug:", err);
     res.status(500).json({
@@ -172,7 +190,7 @@ router.post("/seller/brands/suggest", authMiddleware, async (req, res) => {
     const suggestion = {
       name: trimmedName,
       description: (description || "").trim(),
-      logoUrl: logoUrl || "",
+      logoUrl: normalizeBrandLogoUrl(logoUrl),
 
       sellerId: new ObjectId(req.user.id),
 
@@ -227,7 +245,7 @@ router.get(
         .sort({ createdAt: -1 })
         .toArray();
 
-      res.json({ brands });
+      res.json({ brands: brands.map(withNormalizedLogo) });
     } catch (err) {
       console.error("Error loading admin brands:", err);
       res.status(500).json({
@@ -281,9 +299,7 @@ router.post(
 
       let logoUrl = "";
       if (req.file) {
-        logoUrl = `${req.protocol}://${req.get(
-          "host"
-        )}/uploads/brand-logos/${req.file.filename}`;
+        logoUrl = `/uploads/brand-logos/${req.file.filename}`;
       }
 
       const now = new Date();
@@ -372,9 +388,7 @@ router.put(
       }
 
       if (req.file) {
-        update.logoUrl = `${req.protocol}://${req.get(
-          "host"
-        )}/uploads/brand-logos/${req.file.filename}`;
+        update.logoUrl = `/uploads/brand-logos/${req.file.filename}`;
       }
 
       if (!Object.keys(update).length) {
@@ -638,11 +652,11 @@ router.put(
       if (brand) {
         brandId = brand._id;
       } else {
-        const doc = {
-          name,
-          slug,
-          description: suggestion.description || "",
-          logoUrl: suggestion.logoUrl || "",
+      const doc = {
+        name,
+        slug,
+        description: suggestion.description || "",
+        logoUrl: normalizeBrandLogoUrl(suggestion.logoUrl),
 
           status: "approved",
           isActive: true,
