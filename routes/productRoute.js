@@ -752,7 +752,16 @@ async function handleListProducts(req, res) {
     const limitRaw = parseInt(req.query.limit || "0", 10);
     const limit = Number.isNaN(limitRaw) ? 0 : Math.max(0, limitRaw);
 
-    const { category, minPrice, maxPrice, sort, brand, brandSlug } = req.query;
+    const {
+      category,
+      categoryId,
+      categorySlug,
+      minPrice,
+      maxPrice,
+      sort,
+      brand,
+      brandSlug,
+    } = req.query;
 
     const filter = {
       blocked: { $ne: true },
@@ -760,22 +769,82 @@ async function handleListProducts(req, res) {
       $or: [{ status: "approved" }, { status: { $exists: false } }],
     };
 
-    if (category) {
-      const normalized = category.replace(/-/g, " ");
-      filter.category = { $regex: `^${escapeRegex(normalized)}$`, $options: "i" };
+    const categoryQuery = categoryId || categorySlug || category;
+    if (categoryQuery) {
+      const normalized = String(categoryQuery).replace(/-/g, " ").trim();
+      const raw = String(categoryQuery).trim();
+      const categoryOr = [
+        { category: { $regex: `^${escapeRegex(normalized)}$`, $options: "i" } },
+        { category: { $regex: `^${escapeRegex(raw)}$`, $options: "i" } },
+        { "category.name": { $regex: `^${escapeRegex(normalized)}$`, $options: "i" } },
+        { "category.slug": { $regex: `^${escapeRegex(raw)}$`, $options: "i" } },
+      ];
+      const catId = toObjectId(categoryQuery);
+      if (catId) {
+        categoryOr.push({ categoryId: catId });
+        categoryOr.push({ "category._id": catId });
+      } else if (raw) {
+        categoryOr.push({ categoryId: raw });
+      }
+      filter.$and = filter.$and || [];
+      filter.$and.push({ $or: categoryOr });
     }
 
     // Brand filtering - match by slug or name
     const brandQuery = brandSlug || brand;
     if (brandQuery) {
-      const normalized = brandQuery.replace(/-/g, " ");
-      filter.$and = filter.$and || [];
-      filter.$and.push({
-        $or: [
-          { brand: { $regex: `^${escapeRegex(normalized)}$`, $options: "i" } },
-          { brand: { $regex: `^${escapeRegex(brandQuery)}$`, $options: "i" } },
-        ],
+      const normalized = String(brandQuery).replace(/-/g, " ").trim();
+      const slugGuess = slugifyValue(normalized);
+      const brandCandidates = new Set([normalized, String(brandQuery).trim()]);
+      if (slugGuess) brandCandidates.add(slugGuess);
+
+      let brandDoc = null;
+      try {
+        brandDoc = await Brands.findOne({
+          $or: [
+            { slug: { $regex: `^${escapeRegex(slugGuess)}$`, $options: "i" } },
+            { slug: { $regex: `^${escapeRegex(String(brandQuery).trim())}`, $options: "i" } },
+            { name: { $regex: `^${escapeRegex(normalized)}$`, $options: "i" } },
+            { name: { $regex: escapeRegex(normalized), $options: "i" } },
+          ],
+        });
+      } catch {
+        // ignore brand lookup errors
+      }
+
+      if (brandDoc) {
+        if (brandDoc.name) brandCandidates.add(String(brandDoc.name).trim());
+        if (brandDoc.slug) brandCandidates.add(String(brandDoc.slug).trim());
+      }
+
+      const brandOr = [];
+      brandCandidates.forEach((candidate) => {
+        if (!candidate) return;
+        const candidateNormalized = String(candidate).replace(/-/g, " ").trim();
+        brandOr.push({
+          brand: { $regex: `^${escapeRegex(candidateNormalized)}$`, $options: "i" },
+        });
+        if (candidateNormalized !== candidate) {
+          brandOr.push({
+            brand: { $regex: `^${escapeRegex(candidate)}$`, $options: "i" },
+          });
+        }
       });
+
+      const looseSource = String(brandQuery).replace(/[^a-zA-Z0-9]/g, "");
+      if (looseSource.length >= 3) {
+        const loose = looseSource.split("").map(escapeRegex).join("\\W*");
+        brandOr.push({ brand: { $regex: loose, $options: "i" } });
+      }
+
+      if (brandDoc?._id) {
+        brandOr.push({ brandId: brandDoc._id });
+      } else if (ObjectId.isValid(brandQuery)) {
+        brandOr.push({ brandId: new ObjectId(brandQuery) });
+      }
+
+      filter.$and = filter.$and || [];
+      filter.$and.push({ $or: brandOr });
     }
 
     const priceFilter = {};
