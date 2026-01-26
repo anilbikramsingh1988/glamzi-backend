@@ -1407,7 +1407,9 @@ router.put("/seller/products/:id", authMiddleware, ensureSeller, async (req, res
     if (updateDoc.name) {
       updateDoc.title = updateDoc.name;
     }
-    if (updateDoc.image) {
+    if (Array.isArray(updateDoc.images) && updateDoc.images.length > 0) {
+      delete updateDoc.image;
+    } else if (updateDoc.image) {
       updateDoc.images = [updateDoc.image];
       delete updateDoc.image;
     }
