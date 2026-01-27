@@ -997,6 +997,11 @@ router.get(
         product: {
           name: product.name || product.title || "",
           category: product.category || "",
+          categoryId: product.categoryId || null,
+          subCategory: product.subCategory || "",
+          subCategoryId: product.subCategoryId || null,
+          childCategory: product.childCategory || "",
+          childCategoryId: product.childCategoryId || null,
           brand: brandInfo?.name || product.brand || "",
           brandId: brandInfo?._id || product.brandId || null,
           brandLogoUrl: brandInfo?.logoUrl || "",
@@ -1050,6 +1055,11 @@ router.post(
         barcode,
         name,
         category,
+        categoryId,
+        subCategory,
+        subCategoryId,
+        childCategory,
+        childCategoryId,
         brand,
         brandId,
         price,
@@ -1184,7 +1194,12 @@ router.post(
         barcode,
         title: name,
         name,
-        category,
+        category: category || "",
+        categoryId: toObjectIdSafe(categoryId) || null,
+        subCategory: subCategory || "",
+        subCategoryId: toObjectIdSafe(subCategoryId) || null,
+        childCategory: childCategory || "",
+        childCategoryId: toObjectIdSafe(childCategoryId) || null,
         brand: brand || "",
         brandId: brandId || null,
         description: description || "",
@@ -1387,6 +1402,26 @@ router.put("/seller/products/:id", authMiddleware, ensureSeller, async (req, res
       ...req.body,
       updatedAt: new Date(),
     };
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "category")) {
+      updateDoc.category = (req.body.category || "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "subCategory")) {
+      updateDoc.subCategory = (req.body.subCategory || "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "childCategory")) {
+      updateDoc.childCategory = (req.body.childCategory || "").trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "categoryId")) {
+      updateDoc.categoryId = toObjectIdSafe(req.body.categoryId) || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "subCategoryId")) {
+      updateDoc.subCategoryId = toObjectIdSafe(req.body.subCategoryId) || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "childCategoryId")) {
+      updateDoc.childCategoryId = toObjectIdSafe(req.body.childCategoryId) || null;
+    }
 
     if (weight !== undefined) {
       updateDoc.weight = weight ? Number(weight) : null;

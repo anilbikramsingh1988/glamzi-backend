@@ -405,6 +405,11 @@ async function handleCreateProduct(req, res) {
         req.body.compareAtPrice != null ? Number(req.body.compareAtPrice) : null,
       costPrice: req.body.costPrice != null ? Number(req.body.costPrice) : null,
       category: category || "Uncategorized",
+      categoryId: toObjectId(req.body.categoryId) || null,
+      subCategory: (req.body.subCategory || "").trim(),
+      subCategoryId: toObjectId(req.body.subCategoryId) || null,
+      childCategory: (req.body.childCategory || "").trim(),
+      childCategoryId: toObjectId(req.body.childCategoryId) || null,
       brand: brandForSlug || req.body.brandName || "",
       variant: variantForSlug || "",
       location: location || "",
@@ -663,6 +668,28 @@ router.put("/admin/product/:id", authMiddleware, async (req, res) => {
       name: finalName,
       title: finalName,
       slug: slugToUse,
+
+      category:
+        typeof req.body.category === "string"
+          ? req.body.category.trim()
+          : existing.category || "",
+      categoryId: Object.prototype.hasOwnProperty.call(req.body, "categoryId")
+        ? toObjectId(req.body.categoryId) || null
+        : existing.categoryId || null,
+      subCategory:
+        typeof req.body.subCategory === "string"
+          ? req.body.subCategory.trim()
+          : existing.subCategory || "",
+      subCategoryId: Object.prototype.hasOwnProperty.call(req.body, "subCategoryId")
+        ? toObjectId(req.body.subCategoryId) || null
+        : existing.subCategoryId || null,
+      childCategory:
+        typeof req.body.childCategory === "string"
+          ? req.body.childCategory.trim()
+          : existing.childCategory || "",
+      childCategoryId: Object.prototype.hasOwnProperty.call(req.body, "childCategoryId")
+        ? toObjectId(req.body.childCategoryId) || null
+        : existing.childCategoryId || null,
 
       // normalize arrays
       images: Array.isArray(req.body.images) ? req.body.images : existing.images || [],

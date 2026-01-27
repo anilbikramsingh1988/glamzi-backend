@@ -12,6 +12,13 @@ const Categories = db.collection("categories");
 const CategorySuggestions = db.collection("categorySuggestions");
 const Users = db.collection("users");
 
+const toObjectIdSafe = (value) => {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!raw || !ObjectId.isValid(raw)) return null;
+  return new ObjectId(raw);
+};
+
 /* =========================================================
    PUBLIC
    ========================================================= */
@@ -23,10 +30,38 @@ const Users = db.collection("users");
  */
 router.get("/categories", async (req, res) => {
   try {
-    const categories = await Categories.find({
+    const includeAll = ["1", "true", "yes"].includes(
+      String(req.query.includeAll || req.query.includeChildren || "").toLowerCase()
+    );
+    const parentIdRaw = String(req.query.parentId || "").trim();
+    const levelRaw = String(req.query.level || "").trim();
+
+    const filter = {
       status: "approved",
       isActive: true,
-    })
+    };
+
+    if (!includeAll) {
+      if (parentIdRaw) {
+        if (["null", "root", "top"].includes(parentIdRaw.toLowerCase())) {
+          filter.$or = [{ parentId: { $exists: false } }, { parentId: null }];
+        } else {
+          const parentId = toObjectIdSafe(parentIdRaw);
+          filter.parentId = parentId || parentIdRaw;
+        }
+      } else {
+        filter.$or = [{ parentId: { $exists: false } }, { parentId: null }];
+      }
+    }
+
+    if (levelRaw) {
+      const level = Number(levelRaw);
+      if (Number.isFinite(level)) {
+        filter.level = level;
+      }
+    }
+
+    const categories = await Categories.find(filter)
       .sort({ name: 1 })
       .toArray();
 
@@ -82,7 +117,7 @@ router.post("/admin/categories", authMiddleware, async (req, res) => {
       return res.status(403).json({ message: "Admin access only" });
     }
 
-    const { name, slug } = req.body;
+    const { name, slug, description, parentId: parentIdRaw } = req.body;
 
     const trimmedName = (name || "").trim();
     if (!trimmedName) {
@@ -105,10 +140,30 @@ router.post("/admin/categories", authMiddleware, async (req, res) => {
     }
 
     const now = new Date();
+    let parentId = null;
+    let level = 1;
+
+    if (parentIdRaw) {
+      parentId = toObjectIdSafe(parentIdRaw);
+      if (!parentId) {
+        return res.status(400).json({ message: "Invalid parent category ID" });
+      }
+
+      const parent = await Categories.findOne({ _id: parentId });
+      if (!parent) {
+        return res.status(400).json({ message: "Parent category not found" });
+      }
+
+      const parentLevel = Number(parent.level || 1);
+      level = Number.isFinite(parentLevel) ? parentLevel + 1 : 2;
+    }
 
     const doc = {
       name: trimmedName,
       slug: finalSlug,
+      description: (description || "").trim(),
+      parentId: parentId || null,
+      level,
 
       status: "pending", // ✅ needs super admin approval
       isActive: false, // ✅ inactive until approved
@@ -153,7 +208,7 @@ router.put("/admin/categories/:id", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Invalid category ID" });
     }
 
-    const { name, slug } = req.body;
+    const { name, slug, description, parentId: parentIdRaw } = req.body;
     const trimmedName = (name || "").trim();
     if (!trimmedName) {
       return res.status(400).json({ message: "Category name is required" });
@@ -177,16 +232,41 @@ router.put("/admin/categories/:id", authMiddleware, async (req, res) => {
     }
 
     const now = new Date();
+    const updateDoc = {
+      name: trimmedName,
+      slug: finalSlug,
+      description: (description || "").trim(),
+      updatedAt: now,
+    };
+
+    const hasParentId = Object.prototype.hasOwnProperty.call(req.body, "parentId");
+    if (hasParentId) {
+      if (!parentIdRaw) {
+        updateDoc.parentId = null;
+        updateDoc.level = 1;
+      } else {
+        const parentId = toObjectIdSafe(parentIdRaw);
+        if (!parentId) {
+          return res.status(400).json({ message: "Invalid parent category ID" });
+        }
+        if (String(parentId) === String(id)) {
+          return res.status(400).json({ message: "Category cannot be its own parent" });
+        }
+
+        const parent = await Categories.findOne({ _id: parentId });
+        if (!parent) {
+          return res.status(400).json({ message: "Parent category not found" });
+        }
+
+        const parentLevel = Number(parent.level || 1);
+        updateDoc.parentId = parentId;
+        updateDoc.level = Number.isFinite(parentLevel) ? parentLevel + 1 : 2;
+      }
+    }
 
     const result = await Categories.updateOne(
       { _id: new ObjectId(id) },
-      {
-        $set: {
-          name: trimmedName,
-          slug: finalSlug,
-          updatedAt: now,
-        },
-      }
+      { $set: updateDoc }
     );
 
     if (!result.matchedCount) {
@@ -229,6 +309,24 @@ router.put(
       }
 
       const now = new Date();
+      let parentId = null;
+      let level = 1;
+
+      if (suggestion.parentId) {
+        const parentCandidate = toObjectIdSafe(suggestion.parentId);
+        if (!parentCandidate) {
+          return res.status(400).json({ message: "Invalid parent category ID" });
+        }
+
+        const parent = await Categories.findOne({ _id: parentCandidate });
+        if (!parent) {
+          return res.status(400).json({ message: "Parent category not found" });
+        }
+
+        const parentLevel = Number(parent.level || 1);
+        parentId = parentCandidate;
+        level = Number.isFinite(parentLevel) ? parentLevel + 1 : 2;
+      }
 
       const result = await Categories.updateOne(
         { _id: new ObjectId(id) },
@@ -357,7 +455,7 @@ router.put(
 /**
  * ✅ SELLER ONLY
  * POST /api/seller/categories/suggest
- * Body: { name, description? }
+ * Body: { name, description?, parentId? }
  */
 router.post(
   "/seller/categories/suggest",
@@ -371,11 +469,24 @@ router.post(
           .json({ message: "Only sellers can suggest categories" });
       }
 
-      const { name, description } = req.body;
+      const { name, description, parentId: parentIdRaw } = req.body;
       const trimmedName = (name || "").trim();
 
       if (!trimmedName) {
         return res.status(400).json({ message: "Category name is required" });
+      }
+
+      let parentId = null;
+      if (parentIdRaw) {
+        parentId = toObjectIdSafe(parentIdRaw);
+        if (!parentId) {
+          return res.status(400).json({ message: "Invalid parent category ID" });
+        }
+
+        const parent = await Categories.findOne({ _id: parentId });
+        if (!parent) {
+          return res.status(400).json({ message: "Parent category not found" });
+        }
       }
 
       // Load seller info for display in admin panel
@@ -413,6 +524,7 @@ router.post(
         sellerOwnerName,
         sellerEmail: seller.email,
 
+        parentId: parentId || null,
         status: "pending", // pending | approved | rejected
         linkedCategoryId: null,
 
@@ -549,6 +661,9 @@ router.put(
         const doc = {
           name,
           slug,
+          description: (suggestion.description || "").trim(),
+          parentId: parentId || null,
+          level,
           status: "approved",
           isActive: true,
 
