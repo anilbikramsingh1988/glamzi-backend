@@ -309,24 +309,6 @@ router.put(
       }
 
       const now = new Date();
-      let parentId = null;
-      let level = 1;
-
-      if (suggestion.parentId) {
-        const parentCandidate = toObjectIdSafe(suggestion.parentId);
-        if (!parentCandidate) {
-          return res.status(400).json({ message: "Invalid parent category ID" });
-        }
-
-        const parent = await Categories.findOne({ _id: parentCandidate });
-        if (!parent) {
-          return res.status(400).json({ message: "Parent category not found" });
-        }
-
-        const parentLevel = Number(parent.level || 1);
-        parentId = parentCandidate;
-        level = Number.isFinite(parentLevel) ? parentLevel + 1 : 2;
-      }
 
       const result = await Categories.updateOne(
         { _id: new ObjectId(id) },
