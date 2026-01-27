@@ -84,6 +84,7 @@ let Invoices;
 let CommissionSettings;
 let Brands;
 let ProductsConfig;
+let Categories;
 const PRODUCTS_CONFIG_ID = "products-config";
 
 const collectionsReady = (async () => {
@@ -98,6 +99,7 @@ const collectionsReady = (async () => {
   CommissionSettings = database.collection("commissionSettings"); // ➜ global commission config
   Brands = database.collection("brands");
   ProductsConfig = database.collection("productsConfig");
+  Categories = database.collection("categories");
   return database;
 })();
 
@@ -204,6 +206,40 @@ function toObjectIdSafe(id) {
   } catch {
     return null;
   }
+}
+
+async function validateCategoryId(categoryId, options = {}) {
+  const { requireLeaf = true } = options;
+  await ensureCollectionsReady();
+
+  const id = toObjectIdSafe(categoryId);
+  if (!id) {
+    return { ok: false, message: "Invalid categoryId." };
+  }
+
+  const category = await Categories.findOne({ _id: id });
+  if (!category) {
+    return { ok: false, message: "Category not found." };
+  }
+
+  if (category.status && String(category.status).toLowerCase() !== "approved") {
+    return { ok: false, message: "Category is not approved." };
+  }
+
+  if (category.isActive === false) {
+    return { ok: false, message: "Category is inactive." };
+  }
+
+  if (requireLeaf) {
+    const child = await Categories.findOne({
+      parentId: { $in: [id, String(id)] },
+    });
+    if (child) {
+      return { ok: false, message: "Please select the final category." };
+    }
+  }
+
+  return { ok: true, category };
 }
 
 /**
@@ -1056,10 +1092,6 @@ router.post(
         name,
         category,
         categoryId,
-        subCategory,
-        subCategoryId,
-        childCategory,
-        childCategoryId,
         brand,
         brandId,
         price,
@@ -1077,9 +1109,19 @@ router.post(
         height,
       } = req.body;
 
-      if (!barcode || !name || !category || !price || !quantity) {
+      if (!barcode || !name || !categoryId || !price || !quantity) {
         return res.status(400).json({ message: "Required fields missing" });
       }
+
+      const categoryValidation = await validateCategoryId(categoryId, {
+        requireLeaf: true,
+      });
+      if (!categoryValidation.ok) {
+        return res.status(400).json({ message: categoryValidation.message });
+      }
+
+      const categoryDoc = categoryValidation.category;
+      const resolvedCategoryName = categoryDoc?.name || category || "";
 
       // ➜ Fetch and validate against admin configuration
       const config = await getProductConfig();
@@ -1194,12 +1236,8 @@ router.post(
         barcode,
         title: name,
         name,
-        category: category || "",
-        categoryId: toObjectIdSafe(categoryId) || null,
-        subCategory: subCategory || "",
-        subCategoryId: toObjectIdSafe(subCategoryId) || null,
-        childCategory: childCategory || "",
-        childCategoryId: toObjectIdSafe(childCategoryId) || null,
+        category: resolvedCategoryName,
+        categoryId: categoryDoc?._id || null,
         brand: brand || "",
         brandId: brandId || null,
         description: description || "",
@@ -1398,30 +1436,34 @@ router.put("/seller/products/:id", authMiddleware, ensureSeller, async (req, res
       }
     }
 
+    let resolvedCategory = null;
+    if (Object.prototype.hasOwnProperty.call(req.body, "categoryId")) {
+      const categoryValidation = await validateCategoryId(req.body.categoryId, {
+        requireLeaf: true,
+      });
+      if (!categoryValidation.ok) {
+        return res.status(400).json({ message: categoryValidation.message });
+      }
+      resolvedCategory = categoryValidation.category;
+    }
+
     const updateDoc = {
       ...req.body,
       updatedAt: new Date(),
     };
 
-    if (Object.prototype.hasOwnProperty.call(req.body, "category")) {
-      updateDoc.category = (req.body.category || "").trim();
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, "subCategory")) {
-      updateDoc.subCategory = (req.body.subCategory || "").trim();
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, "childCategory")) {
-      updateDoc.childCategory = (req.body.childCategory || "").trim();
+    if (resolvedCategory) {
+      updateDoc.categoryId = resolvedCategory._id;
+      updateDoc.category = (resolvedCategory.name || "").trim();
+    } else {
+      delete updateDoc.category;
+      delete updateDoc.categoryId;
     }
 
-    if (Object.prototype.hasOwnProperty.call(req.body, "categoryId")) {
-      updateDoc.categoryId = toObjectIdSafe(req.body.categoryId) || null;
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, "subCategoryId")) {
-      updateDoc.subCategoryId = toObjectIdSafe(req.body.subCategoryId) || null;
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, "childCategoryId")) {
-      updateDoc.childCategoryId = toObjectIdSafe(req.body.childCategoryId) || null;
-    }
+    delete updateDoc.subCategory;
+    delete updateDoc.subCategoryId;
+    delete updateDoc.childCategory;
+    delete updateDoc.childCategoryId;
 
     if (weight !== undefined) {
       updateDoc.weight = weight ? Number(weight) : null;
