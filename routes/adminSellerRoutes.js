@@ -167,16 +167,6 @@ router.get(
 
       const and = [{ role: "seller" }];
 
-      // Status filter
-      if (status === "active") {
-        and.push({ status: "active" });
-        and.push({ blocked: { $ne: true } });
-      } else if (status === "pending") {
-        and.push({ status: "pending" });
-      } else if (status === "blocked" || status === "suspended") {
-        and.push({ $or: [{ status: "blocked" }, { blocked: true }] });
-      }
-
       // Search filter
       if (search) {
         const rx = new RegExp(escapeRegex(search), "i");
@@ -196,19 +186,122 @@ router.get(
         });
       }
 
-      const filter = and.length > 1 ? { $and: and } : and[0];
+      const sellerMatch = and.length > 1 ? { $and: and } : and[0];
 
-      const [sellers, total] = await Promise.all([
-        Users.find(filter, { projection: safeProjection() })
-          .sort({ createdAt: -1, _id: -1 })
-          .skip(skip)
-          .limit(limitNum)
-          .toArray(),
-        Users.countDocuments(filter),
-      ]);
+      const unionPipeline = [
+        { $match: sellerMatch },
+        {
+          $project: {
+            ...safeProjection(),
+            _id: 1,
+            sellerId: 1,
+            storeName: 1,
+            shopName: 1,
+            businessName: 1,
+            name: 1,
+            fullName: 1,
+            ownerFirstName: 1,
+            ownerLastName: 1,
+            email: 1,
+            phone: 1,
+            mobile: 1,
+            status: 1,
+            blocked: 1,
+            verified: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      ];
+
+      const pipeline = [
+        ...unionPipeline,
+        {
+          $unionWith: {
+            coll: "sellers",
+            pipeline: [
+              {
+                $match: search
+                  ? {
+                      $or: [
+                        { storeName: { $regex: escapeRegex(search), $options: "i" } },
+                        { shopName: { $regex: escapeRegex(search), $options: "i" } },
+                        { businessName: { $regex: escapeRegex(search), $options: "i" } },
+                        { ownerFirstName: { $regex: escapeRegex(search), $options: "i" } },
+                        { ownerLastName: { $regex: escapeRegex(search), $options: "i" } },
+                        { name: { $regex: escapeRegex(search), $options: "i" } },
+                        { fullName: { $regex: escapeRegex(search), $options: "i" } },
+                        { email: { $regex: escapeRegex(search), $options: "i" } },
+                        { phone: { $regex: escapeRegex(search), $options: "i" } },
+                        { mobile: { $regex: escapeRegex(search), $options: "i" } },
+                      ],
+                    }
+                  : {},
+              },
+              {
+                $project: {
+                  _id: 1,
+                  sellerId: { $ifNull: ["$sellerId", { $toString: "$_id" }] },
+                  storeName: 1,
+                  shopName: 1,
+                  businessName: 1,
+                  name: 1,
+                  fullName: 1,
+                  ownerFirstName: 1,
+                  ownerLastName: 1,
+                  email: 1,
+                  phone: 1,
+                  mobile: 1,
+                  status: 1,
+                  blocked: 1,
+                  verified: 1,
+                  createdAt: 1,
+                  updatedAt: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $addFields: {
+            statusNorm: { $ifNull: ["$status", "active"] },
+            blockedNorm: { $ifNull: ["$blocked", false] },
+          },
+        },
+        ...(status === "active"
+          ? [{ $match: { statusNorm: "active", blockedNorm: { $ne: true } } }]
+          : status === "pending"
+          ? [{ $match: { statusNorm: "pending" } }]
+          : status === "blocked" || status === "suspended"
+          ? [{ $match: { $or: [{ statusNorm: "blocked" }, { blockedNorm: true }] } }]
+          : []),
+        {
+          $facet: {
+            items: [
+              { $sort: { createdAt: -1, _id: -1 } },
+              { $skip: skip },
+              { $limit: limitNum },
+              {
+                $project: {
+                  statusNorm: 0,
+                  blockedNorm: 0,
+                  password: 0,
+                  resetToken: 0,
+                  resetTokenExpiry: 0,
+                },
+              },
+            ],
+            meta: [{ $count: "total" }],
+          },
+        },
+      ];
+
+      const result = await Users.aggregate(pipeline).toArray();
+      const items = result?.[0]?.items || [];
+      const total = result?.[0]?.meta?.[0]?.total || 0;
 
       return res.json({
-        sellers,
+        sellers: items,
         total,
         page: pageNum,
         limit: limitNum,
