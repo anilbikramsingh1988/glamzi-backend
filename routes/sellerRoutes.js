@@ -208,6 +208,131 @@ function toObjectIdSafe(id) {
   }
 }
 
+const SKU_CATEGORY_CODES = [
+  { keywords: ["makeup", "cosmetic"], code: "MKP" },
+  { keywords: ["skin", "skincare"], code: "SKN" },
+  { keywords: ["hair", "haircare"], code: "HAR" },
+  { keywords: ["fragrance", "perfume"], code: "FRG" },
+  { keywords: ["body", "bath"], code: "BDY" },
+  { keywords: ["men", "groom"], code: "MEN" },
+  { keywords: ["dress"], code: "DRS" },
+  { keywords: ["saree"], code: "SRE" },
+  { keywords: ["cardigan", "sweater"], code: "CRD" },
+  { keywords: ["lipstick", "lip"], code: "LIP" },
+  { keywords: ["moisturizer"], code: "MST" },
+  { keywords: ["cleanser"], code: "CLN" },
+  { keywords: ["serum"], code: "SRM" },
+  { keywords: ["toner"], code: "TNR" },
+  { keywords: ["mask"], code: "MSK" },
+  { keywords: ["shampoo"], code: "SHP" },
+  { keywords: ["conditioner"], code: "CND" },
+];
+
+const SKU_COLOR_CODES = {
+  black: "BLK",
+  white: "WHT",
+  red: "RED",
+  blue: "BLU",
+  green: "GRN",
+  yellow: "YLW",
+  pink: "PNK",
+  purple: "PUR",
+  orange: "ORG",
+  brown: "BRN",
+  beige: "BEG",
+  gray: "GRY",
+  grey: "GRY",
+  gold: "GLD",
+  silver: "SLV",
+};
+
+const SKU_SIZE_CODES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
+function cleanSkuSegment(value, maxLen = 5) {
+  const cleaned = String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+  if (!cleaned) return "";
+  return cleaned.slice(0, maxLen);
+}
+
+function normalizeSkuValue(value) {
+  const cleaned = String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return cleaned;
+}
+
+function makeCodeFromWords(text, fallback = "GLZ", maxLen = 4) {
+  const normalized = String(text || "").replace(/[^A-Za-z0-9 ]/g, " ").trim();
+  if (!normalized) return fallback;
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return cleanSkuSegment(parts[0], maxLen) || fallback;
+  }
+  const code = parts.map((p) => p[0]).join("");
+  return cleanSkuSegment(code, maxLen) || fallback;
+}
+
+function resolveCategoryCode(categoryName = "") {
+  const lower = String(categoryName || "").toLowerCase();
+  for (const entry of SKU_CATEGORY_CODES) {
+    if (entry.keywords.some((k) => lower.includes(k))) {
+      return entry.code;
+    }
+  }
+  return makeCodeFromWords(categoryName, "GEN", 4);
+}
+
+function resolveBrandCode(brandName, sellerName) {
+  if (brandName && String(brandName).trim()) {
+    return makeCodeFromWords(brandName, "GLZ", 4);
+  }
+  if (sellerName && String(sellerName).trim()) {
+    return makeCodeFromWords(sellerName, "GLZ", 4);
+  }
+  return "GLZ";
+}
+
+function resolveAttributeCodes(source = "") {
+  const lower = String(source || "").toLowerCase();
+  const color = Object.keys(SKU_COLOR_CODES).find((key) => lower.includes(key));
+  const size = SKU_SIZE_CODES.find((code) => new RegExp(`\\b${code}\\b`, "i").test(source));
+  const segments = [];
+  if (color) segments.push(SKU_COLOR_CODES[color]);
+  if (size) segments.push(size);
+  return segments;
+}
+
+async function generateUniqueSku(baseSegments, productsCollection, maxTries = 12) {
+  const base = baseSegments.filter(Boolean).join("-");
+  for (let i = 0; i < maxTries; i += 1) {
+    const suffix = String(Math.floor(100 + Math.random() * 900));
+    const sku = `${base}-${suffix}`;
+    const exists = await productsCollection.findOne({ sku });
+    if (!exists) return sku;
+  }
+  return `${base}-${String(Date.now()).slice(-4)}`;
+}
+
+async function buildProductSku({
+  brand,
+  category,
+  productName,
+  variantName,
+  sellerName,
+  productsCollection,
+}) {
+  const brandCode = resolveBrandCode(brand, sellerName);
+  const categoryCode = resolveCategoryCode(category);
+  const productCode = makeCodeFromWords(productName, "PRD", 4);
+  const attributeCodes = resolveAttributeCodes(variantName || "");
+  const segments = [brandCode, categoryCode, productCode, ...attributeCodes].filter(Boolean);
+  return generateUniqueSku(segments, productsCollection);
+}
+
 async function validateCategoryId(categoryId, options = {}) {
   const { requireLeaf = true } = options;
   await ensureCollectionsReady();
@@ -1232,8 +1357,43 @@ router.post(
 
       const now = new Date();
 
+      const sellerName =
+        req.user?.shopName || req.user?.storeName || req.user?.name || "";
+      const requestedSku = normalizeSkuValue(req.body.sku);
+      const generatedSku = requestedSku
+        ? null
+        : await buildProductSku({
+            brand: brand || "",
+            category: resolvedCategoryName,
+            productName: name,
+            variantName: "",
+            sellerName,
+            productsCollection: Products,
+          });
+
+      const normalizedVariants =
+        hasVariants && Array.isArray(variants)
+          ? await Promise.all(
+              variants.map(async (variant) => {
+                const incomingSku = normalizeSkuValue(variant?.sku);
+                const finalSku =
+                  incomingSku ||
+                  (await buildProductSku({
+                    brand: brand || "",
+                    category: resolvedCategoryName,
+                    productName: name,
+                    variantName: variant?.name || "",
+                    sellerName,
+                    productsCollection: Products,
+                  }));
+                return { ...variant, sku: finalSku };
+              })
+            )
+          : [];
+
       const productDoc = {
         barcode,
+        sku: requestedSku || generatedSku || "",
         title: name,
         name,
         category: resolvedCategoryName,
@@ -1249,7 +1409,7 @@ router.post(
         compareAtPrice: compareAtPrice ? Number(compareAtPrice) : null,
         images: allImages,
         hasVariants: Boolean(hasVariants),
-        variants: hasVariants && Array.isArray(variants) ? variants : [],
+        variants: normalizedVariants,
         weight: weight ? Number(weight) : null,
         dimensions:
           length || width || height
@@ -1449,6 +1609,15 @@ router.put("/seller/products/:id", authMiddleware, ensureSeller, async (req, res
       resolvedCategory = categoryValidation.category;
     }
 
+    const existingProduct = await Products.findOne({
+      _id: new ObjectId(id),
+      userId: req.user.id,
+      deleted: { $ne: true },
+    });
+    if (!existingProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
     const updateDoc = {
       ...req.body,
       updatedAt: new Date(),
@@ -1459,6 +1628,9 @@ router.put("/seller/products/:id", authMiddleware, ensureSeller, async (req, res
     }
     if (Object.prototype.hasOwnProperty.call(updateDoc, "seoDescription")) {
       updateDoc.seoDescription = String(updateDoc.seoDescription || "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(updateDoc, "sku")) {
+      updateDoc.sku = normalizeSkuValue(updateDoc.sku);
     }
 
     if (resolvedCategory) {
@@ -1498,6 +1670,47 @@ router.put("/seller/products/:id", authMiddleware, ensureSeller, async (req, res
     } else if (updateDoc.image) {
       updateDoc.images = [updateDoc.image];
       delete updateDoc.image;
+    }
+
+    const sellerName =
+      req.user?.shopName || req.user?.storeName || req.user?.name || "";
+    const effectiveCategory =
+      updateDoc.category || existingProduct.category || "";
+    const effectiveBrand = updateDoc.brand || existingProduct.brand || "";
+    const effectiveName =
+      updateDoc.name || existingProduct.name || existingProduct.title || "";
+
+    if (!updateDoc.sku && !existingProduct.sku) {
+      updateDoc.sku = await buildProductSku({
+        brand: effectiveBrand,
+        category: effectiveCategory,
+        productName: effectiveName,
+        variantName: "",
+        sellerName,
+        productsCollection: Products,
+      });
+    }
+
+    if (Array.isArray(updateDoc.variants)) {
+      updateDoc.variants = await Promise.all(
+        updateDoc.variants.map(async (variant) => {
+          const incomingSku = normalizeSkuValue(variant?.sku);
+          const finalSku =
+            incomingSku ||
+            (await buildProductSku({
+              brand: effectiveBrand,
+              category: effectiveCategory,
+              productName: effectiveName,
+              variantName: variant?.name || "",
+              sellerName,
+              productsCollection: Products,
+            }));
+          return {
+            ...variant,
+            sku: finalSku,
+          };
+        })
+      );
     }
 
     const result = await Products.updateOne(
