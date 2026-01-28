@@ -14,6 +14,20 @@ const Reviews = db.collection("reviews");
 const SellerSettings = db.collection("seller_settings");
 const SellerSettingsLegacy = db.collection("sellerSettings");
 
+function buildSellerIdFilters(sellerIdStr) {
+  const filters = [];
+  if (!sellerIdStr) return filters;
+
+  filters.push({ sellerId: sellerIdStr }, { userId: sellerIdStr });
+
+  if (ObjectId.isValid(sellerIdStr)) {
+    const oid = new ObjectId(sellerIdStr);
+    filters.push({ sellerId: oid }, { userId: oid }, { ownerId: oid });
+  }
+
+  return filters;
+}
+
 /**
  * GET /api/sellers/public/:sellerId
  * Public seller profile for product pages & store page header
@@ -282,19 +296,14 @@ router.get("/public/:sellerId/shipping", async (req, res) => {
   try {
     const { sellerId } = req.params;
     const sellerIdStr = String(sellerId || "").trim();
-    const sellerObjectId = ObjectId.isValid(sellerIdStr)
-      ? new ObjectId(sellerIdStr)
-      : null;
+    const filters = buildSellerIdFilters(sellerIdStr);
+    if (!filters.length || sellerIdStr === "undefined" || sellerIdStr === "null") {
+      return res.json({ settings: {} });
+    }
 
-    let settings = await SellerSettings.findOne({ sellerId: sellerIdStr });
-    if (!settings && sellerObjectId) {
-      settings = await SellerSettings.findOne({ sellerId: sellerObjectId });
-    }
+    let settings = await SellerSettings.findOne({ $or: filters });
     if (!settings) {
-      settings = await SellerSettingsLegacy.findOne({ sellerId: sellerIdStr });
-    }
-    if (!settings && sellerObjectId) {
-      settings = await SellerSettingsLegacy.findOne({ sellerId: sellerObjectId });
+      settings = await SellerSettingsLegacy.findOne({ $or: filters });
     }
 
     res.set("Cache-Control", "no-store");

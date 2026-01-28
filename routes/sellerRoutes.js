@@ -1090,10 +1090,15 @@ router.get("/seller/settings/shipping/public/:sellerId", async (req, res) => {
       return res.status(400).json({ message: "sellerId is required" });
     }
 
-    const sellerIdStr = String(sellerId);
-    const filters = [{ sellerId: sellerIdStr }];
+    const sellerIdStr = String(sellerId || "").trim();
+    if (!sellerIdStr || sellerIdStr === "undefined" || sellerIdStr === "null") {
+      return res.json({ settings: {} });
+    }
+
+    const filters = [{ sellerId: sellerIdStr }, { userId: sellerIdStr }];
     if (ObjectId.isValid(sellerIdStr)) {
-      filters.push({ sellerId: new ObjectId(sellerIdStr) });
+      const oid = new ObjectId(sellerIdStr);
+      filters.push({ sellerId: oid }, { userId: oid }, { ownerId: oid });
     }
 
     const settings = await SellerSettings.findOne({ $or: filters });
