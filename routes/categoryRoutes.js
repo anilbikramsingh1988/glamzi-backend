@@ -117,7 +117,8 @@ router.post("/admin/categories", authMiddleware, async (req, res) => {
       return res.status(403).json({ message: "Admin access only" });
     }
 
-    const { name, slug, description, parentId: parentIdRaw } = req.body;
+    const { name, slug, description, seoTitle, seoDescription, parentId: parentIdRaw } =
+      req.body;
 
     const trimmedName = (name || "").trim();
     if (!trimmedName) {
@@ -162,6 +163,8 @@ router.post("/admin/categories", authMiddleware, async (req, res) => {
       name: trimmedName,
       slug: finalSlug,
       description: (description || "").trim(),
+      seoTitle: (seoTitle || "").trim(),
+      seoDescription: (seoDescription || "").trim(),
       parentId: parentId || null,
       level,
 
@@ -208,7 +211,8 @@ router.put("/admin/categories/:id", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Invalid category ID" });
     }
 
-    const { name, slug, description, parentId: parentIdRaw } = req.body;
+    const { name, slug, description, seoTitle, seoDescription, parentId: parentIdRaw } =
+      req.body;
     const trimmedName = (name || "").trim();
     if (!trimmedName) {
       return res.status(400).json({ message: "Category name is required" });
@@ -236,6 +240,8 @@ router.put("/admin/categories/:id", authMiddleware, async (req, res) => {
       name: trimmedName,
       slug: finalSlug,
       description: (description || "").trim(),
+      seoTitle: (seoTitle || "").trim(),
+      seoDescription: (seoDescription || "").trim(),
       updatedAt: now,
     };
 
