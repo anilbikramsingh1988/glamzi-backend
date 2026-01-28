@@ -67,6 +67,124 @@ function escapeRegex(str = "") {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const SKU_CATEGORY_CODES = [
+  { keywords: ["makeup", "cosmetic"], code: "MKP" },
+  { keywords: ["skin", "skincare"], code: "SKN" },
+  { keywords: ["hair", "haircare"], code: "HAR" },
+  { keywords: ["fragrance", "perfume"], code: "FRG" },
+  { keywords: ["body", "bath"], code: "BDY" },
+  { keywords: ["men", "groom"], code: "MEN" },
+  { keywords: ["dress"], code: "DRS" },
+  { keywords: ["saree"], code: "SRE" },
+  { keywords: ["cardigan", "sweater"], code: "CRD" },
+  { keywords: ["lipstick", "lip"], code: "LIP" },
+  { keywords: ["moisturizer"], code: "MST" },
+  { keywords: ["cleanser"], code: "CLN" },
+  { keywords: ["serum"], code: "SRM" },
+  { keywords: ["toner"], code: "TNR" },
+  { keywords: ["mask"], code: "MSK" },
+  { keywords: ["shampoo"], code: "SHP" },
+  { keywords: ["conditioner"], code: "CND" },
+];
+
+const SKU_COLOR_CODES = {
+  black: "BLK",
+  white: "WHT",
+  red: "RED",
+  blue: "BLU",
+  green: "GRN",
+  yellow: "YLW",
+  pink: "PNK",
+  purple: "PUR",
+  orange: "ORG",
+  brown: "BRN",
+  beige: "BEG",
+  gray: "GRY",
+  grey: "GRY",
+  gold: "GLD",
+  silver: "SLV",
+};
+
+const SKU_SIZE_CODES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
+function cleanSkuSegment(value, maxLen = 5) {
+  const cleaned = String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+  if (!cleaned) return "";
+  return cleaned.slice(0, maxLen);
+}
+
+function normalizeSkuValue(value) {
+  const cleaned = String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return cleaned;
+}
+
+function makeCodeFromWords(text, fallback = "GLZ", maxLen = 4) {
+  const normalized = String(text || "").replace(/[^A-Za-z0-9 ]/g, " ").trim();
+  if (!normalized) return fallback;
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return cleanSkuSegment(parts[0], maxLen) || fallback;
+  }
+  const code = parts.map((p) => p[0]).join("");
+  return cleanSkuSegment(code, maxLen) || fallback;
+}
+
+function resolveCategoryCode(categoryName = "") {
+  const lower = String(categoryName || "").toLowerCase();
+  for (const entry of SKU_CATEGORY_CODES) {
+    if (entry.keywords.some((k) => lower.includes(k))) {
+      return entry.code;
+    }
+  }
+  return makeCodeFromWords(categoryName, "GEN", 4);
+}
+
+function resolveBrandCode(brandName, sellerName) {
+  if (brandName && String(brandName).trim()) {
+    return makeCodeFromWords(brandName, "GLZ", 4);
+  }
+  if (sellerName && String(sellerName).trim()) {
+    return makeCodeFromWords(sellerName, "GLZ", 4);
+  }
+  return "GLZ";
+}
+
+function resolveAttributeCodes(source = "") {
+  const lower = String(source || "").toLowerCase();
+  const color = Object.keys(SKU_COLOR_CODES).find((key) => lower.includes(key));
+  const size = SKU_SIZE_CODES.find((code) => new RegExp(`\\b${code}\\b`, "i").test(source));
+  const segments = [];
+  if (color) segments.push(SKU_COLOR_CODES[color]);
+  if (size) segments.push(size);
+  return segments;
+}
+
+async function generateUniqueSku(baseSegments, maxTries = 12) {
+  const base = baseSegments.filter(Boolean).join("-");
+  for (let i = 0; i < maxTries; i += 1) {
+    const suffix = String(Math.floor(100 + Math.random() * 900));
+    const sku = `${base}-${suffix}`;
+    const exists = await Products.findOne({ sku });
+    if (!exists) return sku;
+  }
+  return `${base}-${String(Date.now()).slice(-4)}`;
+}
+
+async function buildProductSku({ brand, category, productName, variantName, sellerName }) {
+  const brandCode = resolveBrandCode(brand, sellerName);
+  const categoryCode = resolveCategoryCode(category);
+  const productCode = makeCodeFromWords(productName, "PRD", 4);
+  const attributeCodes = resolveAttributeCodes(variantName || "");
+  const segments = [brandCode, categoryCode, productCode, ...attributeCodes].filter(Boolean);
+  return generateUniqueSku(segments);
+}
+
 /** ãƒ. Slugify helper (lowercase, dash-separated, safe ASCII) */
 function slugifyValue(str = "") {
   return String(str || "")
@@ -395,11 +513,45 @@ async function handleCreateProduct(req, res) {
     });
 
     const productQuantity = req.body.quantity != null ? Number(req.body.quantity) : 0;
+    const sellerName =
+      req.user?.shopName || req.user?.storeName || req.user?.name || "";
+    const requestedSku = normalizeSkuValue(req.body.sku);
+    const generatedSku = requestedSku
+      ? null
+      : await buildProductSku({
+          brand: brandForSlug || req.body.brandName || "",
+          category: category || "Uncategorized",
+          productName: finalTitle,
+          variantName: "",
+          sellerName,
+        });
+    const normalizedVariants = await Promise.all(
+      variants.map(async (v) => {
+        const incomingSku = normalizeSkuValue(v?.sku);
+        const finalSku =
+          incomingSku ||
+          (await buildProductSku({
+            brand: brandForSlug || req.body.brandName || "",
+            category: category || "Uncategorized",
+            productName: finalTitle,
+            variantName: v?.name || "",
+            sellerName,
+          }));
+        return {
+          name: (v.name || "").trim(),
+          sku: finalSku,
+          price: v.price != null ? Number(v.price) : null,
+          compareAtPrice: v.compareAtPrice != null ? Number(v.compareAtPrice) : null,
+          quantity: v.quantity != null ? Number(v.quantity) : 0,
+        };
+      })
+    );
 
     const product = {
       title: finalTitle,
       name: finalTitle,
       description,
+      sku: requestedSku || generatedSku || "",
       seoTitle: typeof req.body.seoTitle === "string" ? req.body.seoTitle.trim() : "",
       seoDescription:
         typeof req.body.seoDescription === "string" ? req.body.seoDescription.trim() : "",
@@ -420,13 +572,7 @@ async function handleCreateProduct(req, res) {
       images: Array.isArray(images) ? images : [],
       slug,
       hasVariants: variants.length > 0,
-      variants: variants.map((v) => ({
-        name: (v.name || "").trim(),
-        sku: (v.sku || "").trim(),
-        price: v.price != null ? Number(v.price) : null,
-        compareAtPrice: v.compareAtPrice != null ? Number(v.compareAtPrice) : null,
-        quantity: v.quantity != null ? Number(v.quantity) : 0,
-      })),
+      variants: normalizedVariants,
       quantity:
         variants.length > 0
           ? variants.reduce((sum, v) => sum + (Number(v.quantity) || 0), 0)
@@ -542,6 +688,9 @@ async function handleSellerUpdateProduct(req, res) {
     if ("seoDescription" in safeBody) {
       safeBody.seoDescription = String(safeBody.seoDescription || "").trim();
     }
+    if ("sku" in safeBody) {
+      safeBody.sku = normalizeSkuValue(safeBody.sku);
+    }
 
     if (safeBody.images != null && !Array.isArray(safeBody.images)) {
       safeBody.images = [];
@@ -575,6 +724,44 @@ async function handleSellerUpdateProduct(req, res) {
           providedSlug: safeBody.slug,
         })
       : existing.slug;
+
+    const sellerName =
+      req.user?.shopName || req.user?.storeName || req.user?.name || "";
+    const effectiveCategory =
+      safeBody.category || existing.category || "Uncategorized";
+    const effectiveBrand = brandForSlug || existing.brand || "";
+    const effectiveName = titleForSlug || existing.title || existing.name || "";
+
+    if (!safeBody.sku && !existing.sku) {
+      safeBody.sku = await buildProductSku({
+        brand: effectiveBrand,
+        category: effectiveCategory,
+        productName: effectiveName,
+        variantName: "",
+        sellerName,
+      });
+    }
+
+    if (Array.isArray(safeBody.variants)) {
+      safeBody.variants = await Promise.all(
+        safeBody.variants.map(async (v) => {
+          const incomingSku = normalizeSkuValue(v?.sku);
+          const finalSku =
+            incomingSku ||
+            (await buildProductSku({
+              brand: effectiveBrand,
+              category: effectiveCategory,
+              productName: effectiveName,
+              variantName: v?.name || "",
+              sellerName,
+            }));
+          return {
+            ...v,
+            sku: finalSku,
+          };
+        })
+      );
+    }
 
     // Prevent slug from being a random object on $set
     if ("slug" in safeBody) {
@@ -718,6 +905,47 @@ router.put("/admin/product/:id", authMiddleware, async (req, res) => {
 
       updatedAt: now,
     };
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "sku")) {
+      patch.sku = normalizeSkuValue(req.body.sku);
+    }
+
+    const sellerName =
+      req.user?.shopName || req.user?.storeName || req.user?.name || "";
+    const effectiveCategory = patch.category || existing.category || "Uncategorized";
+    const effectiveBrand = brandForSlug || existing.brand || "";
+    const effectiveName = finalName || existing.name || existing.title || "";
+
+    if (!patch.sku && !existing.sku) {
+      patch.sku = await buildProductSku({
+        brand: effectiveBrand,
+        category: effectiveCategory,
+        productName: effectiveName,
+        variantName: "",
+        sellerName,
+      });
+    }
+
+    if (Array.isArray(req.body.variants)) {
+      patch.variants = await Promise.all(
+        req.body.variants.map(async (v) => {
+          const incomingSku = normalizeSkuValue(v?.sku);
+          const finalSku =
+            incomingSku ||
+            (await buildProductSku({
+              brand: effectiveBrand,
+              category: effectiveCategory,
+              productName: effectiveName,
+              variantName: v?.name || "",
+              sellerName,
+            }));
+          return {
+            ...v,
+            sku: finalSku,
+          };
+        })
+      );
+    }
 
     await Products.updateOne({ _id: pid }, { $set: patch });
 
