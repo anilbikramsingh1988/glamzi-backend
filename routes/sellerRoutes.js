@@ -1241,6 +1241,8 @@ router.post(
         brand: brand || "",
         brandId: brandId || null,
         description: description || "",
+        seoTitle: (req.body.seoTitle || "").trim(),
+        seoDescription: (req.body.seoDescription || "").trim(),
         price: priceNum,
         quantity: Number(quantity),
         costPrice: costPrice ? Number(costPrice) : null,
@@ -1451,6 +1453,13 @@ router.put("/seller/products/:id", authMiddleware, ensureSeller, async (req, res
       ...req.body,
       updatedAt: new Date(),
     };
+
+    if (Object.prototype.hasOwnProperty.call(updateDoc, "seoTitle")) {
+      updateDoc.seoTitle = String(updateDoc.seoTitle || "").trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(updateDoc, "seoDescription")) {
+      updateDoc.seoDescription = String(updateDoc.seoDescription || "").trim();
+    }
 
     if (resolvedCategory) {
       updateDoc.categoryId = resolvedCategory._id;

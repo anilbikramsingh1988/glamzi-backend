@@ -400,6 +400,9 @@ async function handleCreateProduct(req, res) {
       title: finalTitle,
       name: finalTitle,
       description,
+      seoTitle: typeof req.body.seoTitle === "string" ? req.body.seoTitle.trim() : "",
+      seoDescription:
+        typeof req.body.seoDescription === "string" ? req.body.seoDescription.trim() : "",
       price: numericPrice,
       compareAtPrice:
         req.body.compareAtPrice != null ? Number(req.body.compareAtPrice) : null,
@@ -531,6 +534,13 @@ async function handleSellerUpdateProduct(req, res) {
         return res.status(400).json({ message: "Invalid price value" });
       }
       safeBody.price = p;
+    }
+
+    if ("seoTitle" in safeBody) {
+      safeBody.seoTitle = String(safeBody.seoTitle || "").trim();
+    }
+    if ("seoDescription" in safeBody) {
+      safeBody.seoDescription = String(safeBody.seoDescription || "").trim();
     }
 
     if (safeBody.images != null && !Array.isArray(safeBody.images)) {
