@@ -22,6 +22,7 @@ const db = client.db(dbName);
 
 const Returns = db.collection("returns");
 const Orders = db.collection("orders");
+const AdminNotifications = db.collection("admin_notifications");
 
 /* ------------------------- helpers ------------------------- */
 
@@ -364,6 +365,15 @@ router.post("/", authMiddleware, async (req, res) => {
       await logReturnIssue("no-valid-items", requestSnapshot);
       return res.status(400).json({ message: "No valid seller return items found." });
     }
+
+    await AdminNotifications.insertOne({
+      type: "return_pending",
+      title: "Return request pending",
+      message: `New return request for order ${order?.orderNumber || order?._id || ""}`,
+      link: "/returns",
+      read: false,
+      createdAt: now(),
+    });
 
     return res.status(201).json({ message: "Return request created.", created });
   } catch (err) {

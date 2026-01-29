@@ -11,6 +11,7 @@ const db = client.db(dbName);
 const Categories = db.collection("categories");
 const CategorySuggestions = db.collection("categorySuggestions");
 const Users = db.collection("users");
+const AdminNotifications = db.collection("admin_notifications");
 
 const toObjectIdSafe = (value) => {
   if (!value) return null;
@@ -180,6 +181,19 @@ router.post("/admin/categories", authMiddleware, async (req, res) => {
     };
 
     const result = await Categories.insertOne(doc);
+
+    try {
+      await AdminNotifications.insertOne({
+        type: "category_pending",
+        title: "New category pending",
+        body: `${trimmedName} is awaiting approval.`,
+        categoryId: result.insertedId,
+        read: false,
+        createdAt: now,
+      });
+    } catch (notifyErr) {
+      console.error("Admin notification insert failed:", notifyErr);
+    }
 
     res.json({
       message: "Category created (pending approval)",

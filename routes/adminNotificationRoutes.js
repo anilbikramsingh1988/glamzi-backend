@@ -6,6 +6,12 @@ import { authMiddleware, isStaffMiddleware } from "../middlewares/authMiddleware
 const router = express.Router();
 const db = client.db(process.env.DB_NAME || "glamzi_ecommerce");
 const AdminNotifications = db.collection("admin_notifications");
+const Categories = db.collection("categories");
+const Brands = db.collection("brands");
+const Discounts = db.collection("discounts");
+const Products = db.collection("products");
+const Returns = db.collection("returns");
+const Users = db.collection("users");
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
@@ -106,6 +112,46 @@ router.patch("/:id/read", authMiddleware, isStaffMiddleware, async (req, res) =>
   } catch (error) {
     console.error("Error marking notification read:", error);
     res.status(500).json({ message: "Failed to update notification" });
+  }
+});
+
+// ------------------------------------------------------------------
+// Summary counts for pending approvals
+// ------------------------------------------------------------------
+router.get("/summary", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const [
+      pendingCategories,
+      pendingBrands,
+      pendingSellerDiscounts,
+      pendingProducts,
+      pendingReturns,
+      pendingSellers,
+    ] = await Promise.all([
+      Categories.countDocuments({ status: "pending" }),
+      Brands.countDocuments({ status: "pending" }),
+      Discounts.countDocuments({
+        $or: [{ authority: "seller" }, { createdByRole: "seller" }, { kind: "seller_discount" }],
+        status: "pending",
+      }),
+      Products.countDocuments({ status: "pending", deleted: { $ne: true } }),
+      Returns.countDocuments({ status: { $in: ["pending", "under_review"] } }),
+      Users.countDocuments({ role: "seller", status: "pending" }),
+    ]);
+
+    res.json({
+      counts: {
+        categories: pendingCategories,
+        brands: pendingBrands,
+        sellerDiscounts: pendingSellerDiscounts,
+        products: pendingProducts,
+        returns: pendingReturns,
+        sellers: pendingSellers,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching notification summary:", error);
+    res.status(500).json({ message: "Failed to fetch notification summary" });
   }
 });
 

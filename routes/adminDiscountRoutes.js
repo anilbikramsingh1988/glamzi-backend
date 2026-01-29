@@ -765,6 +765,7 @@ router.patch("/sellers/:id/status", staffGuard, async (req, res) => {
         disabledAt: !enabled ? new Date() : null,
         disabledBy: !enabled ? adminActor : null,
         disabledNote: note ? note : null,
+        status: enabled ? "approved" : "rejected",
       },
     };
 

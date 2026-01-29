@@ -17,6 +17,7 @@ const db = client.db(dbName);
 
 const Brands = db.collection("brands");
 const BrandSuggestions = db.collection("brandSuggestions");
+const AdminNotifications = db.collection("admin_notifications");
 
 // ================== FILE UPLOAD (LOGOS) ==================
 
@@ -322,6 +323,19 @@ router.post(
       };
 
       const result = await Brands.insertOne(doc);
+
+      try {
+        await AdminNotifications.insertOne({
+          type: "brand_pending",
+          title: "New brand pending",
+          body: `${trimmedName} is awaiting approval.`,
+          brandId: result.insertedId,
+          read: false,
+          createdAt: now,
+        });
+      } catch (notifyErr) {
+        console.error("Admin notification insert failed:", notifyErr);
+      }
 
       res.json({
         message: "Brand created (pending approval)",

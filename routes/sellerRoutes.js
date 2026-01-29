@@ -85,6 +85,7 @@ let CommissionSettings;
 let Brands;
 let ProductsConfig;
 let Categories;
+let AdminNotifications;
 const PRODUCTS_CONFIG_ID = "products-config";
 
 const collectionsReady = (async () => {
@@ -100,6 +101,7 @@ const collectionsReady = (async () => {
   Brands = database.collection("brands");
   ProductsConfig = database.collection("productsConfig");
   Categories = database.collection("categories");
+  AdminNotifications = database.collection("admin_notifications");
   return database;
 })();
 
@@ -1436,6 +1438,17 @@ router.post(
       };
 
       const result = await Products.insertOne(productDoc);
+
+      if (productDoc.status === "pending") {
+        await AdminNotifications.insertOne({
+          type: "product_pending",
+          title: "Product pending approval",
+          message: `${productDoc.name || "New product"} is awaiting approval.`,
+          link: "/products",
+          read: false,
+          createdAt: now,
+        });
+      }
 
       res.json({
         message: moderation?.requireApproval

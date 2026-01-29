@@ -13,6 +13,7 @@ const dbName = process.env.DB_NAME || "glamzi_ecommerce";
 const db = client.db(dbName);
 
 const Discounts = db.collection("discounts");
+const AdminNotifications = db.collection("admin_notifications");
 const Users = db.collection("users"); // ✅ NEW (for seller snapshot)
 
 /* ===============================
@@ -571,7 +572,8 @@ router.post("/", sellerGuard, async (req, res) => {
       endsAt: v.parsed.endsAt,
 
       isActive: true,
-      disabled: false,
+      status: "pending",
+      disabled: true,
       disabledAt: null,
       disabledBy: null,
 
@@ -586,6 +588,20 @@ router.post("/", sellerGuard, async (req, res) => {
     };
 
     const result = await Discounts.insertOne(doc);
+
+    try {
+      await AdminNotifications.insertOne({
+        type: "seller_discount_pending",
+        title: "New seller discount",
+        body: `${name} discount is awaiting approval.`,
+        discountId: result.insertedId,
+        sellerId: String(sellerId),
+        read: false,
+        createdAt: now,
+      });
+    } catch (notifyErr) {
+      console.error("Admin notification insert failed:", notifyErr);
+    }
 
     res.status(201).json({
       success: true,
