@@ -86,6 +86,7 @@ import adminRefundsRoutes from "./routes/adminRefundsRoutes.js";
 
 // ✅ Admin customers
 import adminCustomerRoutes from "./routes/adminCustomerRoutes.js";
+import adminSubscriberRoutes from "./routes/adminSubscriberRoutes.js";
 
 // ✅ Admin commission listing + payouts
 import adminCommissionRoutes from "./routes/adminCommissionRoutes.js";
@@ -122,6 +123,7 @@ import wishlistRoutes from "./routes/wishlistRoutes.js";
 // Push notification routes
 import pushNotificationRoutes from "./routes/pushNotificationRoutes.js";
 import adminNotificationRoutes from "./routes/adminNotificationRoutes.js";
+import subscriberRoutes from "./routes/subscriberRoutes.js";
 
 // =========================
 // DISCOUNTS / COUPONS
@@ -283,6 +285,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/admin", adminSellerRoutes);
 app.use("/api/admin", adminSellerSupportRoutes);
 app.use("/api/admin", adminCustomerRoutes);
+app.use("/api/admin", adminSubscriberRoutes);
 app.use("/api/admin", adminProductRoutes);
 app.use("/api/admin", adminProductsConfigRoutes);
 app.use("/api/admin", adminSellersConfigRoutes);
@@ -326,6 +329,7 @@ app.use("/api/seller/returns", sellerReturnsRoutes);
 // CUSTOMER ROUTES
 // =========================
 app.use("/api", accountRoutes);
+app.use("/api", subscriberRoutes);
 app.use("/api/cart", cartRoutes);
 
 // ✅ Cart coupon apply / remove (ONLY once — avoid duplicate mounts)
