@@ -60,7 +60,6 @@ function buildDefaultConfig() {
 function normalizeIncoming(body = {}) {
   const incoming = body.socialLinks || body || {};
   return {
-    _id: CONFIG_ID,
     socialLinks: {
       facebook: normalizeUrl(incoming.facebook),
       instagram: normalizeUrl(incoming.instagram),
