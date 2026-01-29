@@ -100,6 +100,7 @@ import adminInvoicesRoutes from "./routes/adminInvoicesRoutes.js";
 // ✅ Admin product configuration routes
 import adminProductsConfigRoutes from "./routes/adminProductsConfigRoutes.js";
 import adminStorefrontConfigRoutes from "./routes/adminStorefrontConfigRoutes.js";
+import adminSellersConfigRoutes from "./routes/adminSellersConfigRoutes.js";
 
 // ✅ Admin dashboard stats routes
 import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
@@ -283,6 +284,7 @@ app.use("/api/admin", adminSellerSupportRoutes);
 app.use("/api/admin", adminCustomerRoutes);
 app.use("/api/admin", adminProductRoutes);
 app.use("/api/admin", adminProductsConfigRoutes);
+app.use("/api/admin", adminSellersConfigRoutes);
 app.use("/api", adminStorefrontConfigRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin", adminMessagingRoutes);
