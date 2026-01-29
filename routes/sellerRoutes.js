@@ -1069,6 +1069,9 @@ router.get("/seller/profile/public/:sellerId", async (req, res) => {
       supportPhone: seller.supportPhone || seller.ownerPhone || "",
       supportEmail:
         seller.supportEmail || seller.ownerEmail || seller.email || "",
+      description: seller.description || seller.storeDescription || "",
+      seoTitle: seller.seoTitle || "",
+      seoDescription: seller.seoDescription || "",
     };
 
     res.json(profile);

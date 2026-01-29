@@ -480,6 +480,10 @@ router.get(
         ownerPhone: seller.ownerPhone || seller.phone || "",
         ownerEmail: seller.ownerEmail || seller.email || "",
 
+        description: seller.description || seller.storeDescription || "",
+        seoTitle: seller.seoTitle || "",
+        seoDescription: seller.seoDescription || "",
+
         supportEmail: seller.supportEmail || "",
         supportPhone: seller.supportPhone || "",
         supportWhatsapp: seller.supportWhatsapp || "",
@@ -520,6 +524,50 @@ router.get(
     } catch (err) {
       console.error("❌ Admin fetch seller error:", err);
       return res.status(500).json({ message: "Failed to fetch seller" });
+    }
+  }
+);
+
+/* ------------------------------------------------------------------
+   PATCH /api/admin/sellers/:id/profile
+   Update store profile fields (description + SEO)
+------------------------------------------------------------------- */
+router.patch(
+  "/sellers/:id/profile",
+  authMiddleware,
+  isActiveMiddleware,
+  isAdminOrSuperAdmin,
+  async (req, res) => {
+    try {
+      const sellerId = toObjectId(req.params.id);
+      if (!sellerId)
+        return res.status(400).json({ message: "Invalid seller ID" });
+
+      const payload = req.body || {};
+      const description = String(payload.description || "").trim();
+      const seoTitle = String(payload.seoTitle || "").trim();
+      const seoDescription = String(payload.seoDescription || "").trim();
+
+      const patch = {
+        ...(description ? { description, storeDescription: description } : {}),
+        ...(seoTitle ? { seoTitle } : {}),
+        ...(seoDescription ? { seoDescription } : {}),
+        updatedAt: new Date(),
+      };
+
+      const seller = await Users.findOne({ _id: sellerId, role: "seller" });
+      if (!seller) return res.status(404).json({ message: "Seller not found" });
+
+      await Users.updateOne({ _id: sellerId }, { $set: patch });
+
+      // Optional: if legacy "sellers" collection is used, update it too.
+      const Sellers = db.collection("sellers");
+      await Sellers.updateOne({ _id: sellerId }, { $set: patch });
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("❌ Admin update seller profile error:", err);
+      return res.status(500).json({ message: "Failed to update seller profile" });
     }
   }
 );

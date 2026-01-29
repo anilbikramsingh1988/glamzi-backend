@@ -82,6 +82,10 @@ router.get("/public/:sellerId", async (req, res) => {
           defaultCurrency: 1,
           timezone: 1,
           language: 1,
+          description: 1,
+          storeDescription: 1,
+          seoTitle: 1,
+          seoDescription: 1,
         },
       }
     );
@@ -115,20 +119,24 @@ router.get("/public/:sellerId", async (req, res) => {
             streetAddress: 1,
             location: 1,
 
-            // meta
-            logoUrl: 1,
-            createdAt: 1,
-            rating: 1,
-            ratingCount: 1,
-            isVerifiedSeller: 1,
-            verified: 1,
-            defaultCountry: 1,
-            defaultCurrency: 1,
-            timezone: 1,
-            language: 1,
-          },
-        }
-      );
+          // meta
+          logoUrl: 1,
+          createdAt: 1,
+          rating: 1,
+          ratingCount: 1,
+          isVerifiedSeller: 1,
+          verified: 1,
+          defaultCountry: 1,
+          defaultCurrency: 1,
+          timezone: 1,
+          language: 1,
+          description: 1,
+          storeDescription: 1,
+          seoTitle: 1,
+          seoDescription: 1,
+        },
+      }
+    );
     }
 
     if (!seller) {
@@ -193,6 +201,9 @@ router.get("/public/:sellerId", async (req, res) => {
         defaultCurrency: seller.defaultCurrency || "NPR",
         timezone: seller.timezone || "Asia/Kathmandu",
         language: seller.language || "en",
+        description: seller.description || seller.storeDescription || "",
+        seoTitle: seller.seoTitle || "",
+        seoDescription: seller.seoDescription || "",
       },
     });
   } catch (err) {

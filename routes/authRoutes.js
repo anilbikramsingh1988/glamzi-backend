@@ -204,6 +204,9 @@ router.post("/seller/register", async (req, res) => {
       password,
       shopName,
       storeName,
+      description,
+      seoTitle,
+      seoDescription,
     } = req.body;
 
     const finalStoreName = storeName || shopName;
@@ -231,12 +234,19 @@ router.post("/seller/register", async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     const now = new Date();
 
+    const cleanDescription = description ? String(description).trim() : "";
+    const cleanSeoTitle = seoTitle ? String(seoTitle).trim() : "";
+    const cleanSeoDescription = seoDescription ? String(seoDescription).trim() : "";
+
     const newSeller = {
       ownerFirstName: firstName,
       ownerLastName: lastName,
       name: `${firstName} ${lastName}`,
       storeName: finalStoreName,
       shopName: finalStoreName,
+      ...(cleanDescription ? { description: cleanDescription, storeDescription: cleanDescription } : {}),
+      ...(cleanSeoTitle ? { seoTitle: cleanSeoTitle } : {}),
+      ...(cleanSeoDescription ? { seoDescription: cleanSeoDescription } : {}),
       phone,
       email: lowerEmail,
       password: hashed,
