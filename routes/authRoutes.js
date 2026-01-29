@@ -17,6 +17,7 @@ const router = express.Router();
 const dbName = process.env.DB_NAME || "glamzi_ecommerce"; // ✅ unified DB name
 const db = client.db(dbName);
 const Users = db.collection("users");
+const AdminNotifications = db.collection("admin_notifications");
 
 const JWT_SECRET = process.env.JWT_SECRET || "mysecretkey";
 
@@ -260,6 +261,20 @@ router.post("/seller/register", async (req, res) => {
     };
 
     const result = await Users.insertOne(newSeller);
+
+    try {
+      const storeLabel = finalStoreName || "New Seller";
+      await AdminNotifications.insertOne({
+        type: "seller_pending",
+        title: "New seller request",
+        body: `${storeLabel} requested to join Glamzi.`,
+        sellerId: result.insertedId,
+        read: false,
+        createdAt: now,
+      });
+    } catch (notifyErr) {
+      console.error("Admin notification insert failed:", notifyErr);
+    }
 
     return res.json({
       message: "Seller registered successfully",

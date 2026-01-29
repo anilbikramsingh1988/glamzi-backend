@@ -5,6 +5,7 @@ import { authMiddleware, isStaffMiddleware } from "../middlewares/authMiddleware
 
 const router = express.Router();
 const db = client.db(process.env.DB_NAME || "glamzi_ecommerce");
+const AdminNotifications = db.collection("admin_notifications");
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
@@ -63,6 +64,48 @@ router.get("/campaigns", authMiddleware, isStaffMiddleware, async (req, res) => 
   } catch (error) {
     console.error("Error fetching campaigns:", error);
     res.status(500).json({ message: "Failed to fetch campaigns" });
+  }
+});
+
+// ------------------------------------------------------------------
+// Admin in-app notifications (e.g., new seller requests)
+// ------------------------------------------------------------------
+
+router.get("/items", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const items = await AdminNotifications.find({})
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+    res.json({ items });
+  } catch (error) {
+    console.error("Error fetching admin notifications:", error);
+    res.status(500).json({ message: "Failed to fetch notifications" });
+  }
+});
+
+router.get("/unread-count", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const count = await AdminNotifications.countDocuments({ read: false });
+    res.json({ count });
+  } catch (error) {
+    console.error("Error fetching notification count:", error);
+    res.status(500).json({ message: "Failed to fetch notification count" });
+  }
+});
+
+router.patch("/:id/read", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await AdminNotifications.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { read: true, readAt: new Date() } }
+    );
+    res.json({ message: "Notification marked as read" });
+  } catch (error) {
+    console.error("Error marking notification read:", error);
+    res.status(500).json({ message: "Failed to update notification" });
   }
 });
 

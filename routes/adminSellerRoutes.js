@@ -379,6 +379,30 @@ router.get(
 );
 
 /* ------------------------------------------------------------------
+   GET /api/admin/sellers/pending-count
+------------------------------------------------------------------- */
+router.get(
+  "/sellers/pending-count",
+  authMiddleware,
+  isActiveMiddleware,
+  isAdminOrSuperAdmin,
+  async (req, res) => {
+    try {
+      const pendingCount = await Users.countDocuments({
+        role: "seller",
+        status: "pending",
+      });
+      return res.json({ success: true, count: pendingCount });
+    } catch (err) {
+      console.error("Pending sellers count error:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to load pending count" });
+    }
+  }
+);
+
+/* ------------------------------------------------------------------
    GET /api/admin/sellers/:id
    Seller details + optional stats
 ------------------------------------------------------------------- */
