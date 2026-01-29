@@ -296,9 +296,73 @@ router.get(
         },
       ];
 
-      const result = await Users.aggregate(pipeline).toArray();
-      const items = result?.[0]?.items || [];
-      const total = result?.[0]?.meta?.[0]?.total || 0;
+      let items = [];
+      let total = 0;
+
+      try {
+        const result = await Users.aggregate(pipeline).toArray();
+        items = result?.[0]?.items || [];
+        total = result?.[0]?.meta?.[0]?.total || 0;
+      } catch (aggErr) {
+        console.error("[admin sellers] aggregate failed, falling back:", aggErr?.message || aggErr);
+
+        const [usersSellers, sellersColl] = await Promise.all([
+          Users.find(sellerMatch, { projection: safeProjection() }).toArray(),
+          db.collection("sellers").find({}).toArray(),
+        ]);
+
+        const normalize = (doc) => ({
+          ...doc,
+          sellerId: doc?.sellerId || (doc?._id ? String(doc._id) : undefined),
+          storeName: doc?.storeName || doc?.shopName || doc?.businessName || doc?.name || doc?.fullName || "",
+          ownerFirstName: doc?.ownerFirstName || doc?.firstName || "",
+          ownerLastName: doc?.ownerLastName || doc?.lastName || "",
+          status: doc?.status || "active",
+          blocked: !!doc?.blocked,
+        });
+
+        const merged = [...usersSellers, ...sellersColl].map(normalize);
+
+        const filtered = merged.filter((s) => {
+          const statusNorm = String(s.status || "active").toLowerCase();
+          const blockedNorm = !!s.blocked;
+          if (status === "active") return statusNorm === "active" && !blockedNorm;
+          if (status === "pending") return statusNorm === "pending";
+          if (status === "blocked" || status === "suspended")
+            return statusNorm === "blocked" || blockedNorm;
+          return true;
+        });
+
+        const searched = search
+          ? filtered.filter((s) => {
+              const hay = [
+                s.storeName,
+                s.shopName,
+                s.businessName,
+                s.ownerFirstName,
+                s.ownerLastName,
+                s.name,
+                s.fullName,
+                s.email,
+                s.phone,
+                s.mobile,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+              return hay.includes(search.toLowerCase());
+            })
+          : filtered;
+
+        searched.sort((a, b) => {
+          const da = new Date(a.createdAt || 0).getTime();
+          const dbb = new Date(b.createdAt || 0).getTime();
+          return dbb - da;
+        });
+
+        total = searched.length;
+        items = searched.slice(skip, skip + limitNum);
+      }
 
       return res.json({
         sellers: items,
