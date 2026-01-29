@@ -10,6 +10,7 @@ import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { applyDiscounts } from "../utils/discountEngine.js";
 import multer from "multer";
 import { bookShipmentFactory, bookReturnShipment } from "../utils/shippingBridge.js";
+import { sendSellerPushNotification } from "../utils/sellerPush.js";
 
 const router = express.Router();
 
@@ -26,6 +27,7 @@ const Invoices = db.collection("invoices");
 const Discounts = db.collection("discounts");
 const FlashReservations = db.collection("flashReservations");
 const CommissionSettings = db.collection("commissionSettings");
+const SellerNotifications = db.collection("seller_notifications");
 
 const bookShipmentFireAndForget = bookShipmentFactory({ Orders, Users });
 
@@ -2426,6 +2428,41 @@ router.post("/", authMiddleware, async (req, res) => {
       const codInvoiceDoc = buildCodInvoiceSnapshot(orderDocOut);
       await Orders.updateOne({ _id: insertedId }, { $set: { codInvoice: codInvoiceDoc } });
       orderDocOut.codInvoice = codInvoiceDoc;
+    }
+
+    if (insertedId && orderDocOut?.items?.length) {
+      const uniqueSellerIds = Array.from(
+        new Set(
+          orderDocOut.items
+            .map((item) => item?.sellerId || item?.seller?._id || item?.seller?.id || null)
+            .filter(Boolean)
+            .map((id) => String(id))
+        )
+      );
+
+      const createdAt = new Date();
+      for (const sellerId of uniqueSellerIds) {
+        try {
+          await SellerNotifications.insertOne({
+            sellerId,
+            type: "order_new",
+            title: "New order received",
+            body: `You have a new order ${orderDocOut.orderNumber || ""}`.trim(),
+            link: "/seller/dashboard/orders/orderslisting",
+            read: false,
+            createdAt,
+          });
+
+          await sendSellerPushNotification({
+            sellerId,
+            title: "New order received",
+            body: `You have a new order ${orderDocOut.orderNumber || ""}`.trim(),
+            url: "/seller/dashboard/orders/orderslisting",
+          });
+        } catch (notifyErr) {
+          console.error("Seller order notification error:", notifyErr);
+        }
+      }
     }
 
     // Commit flash reservations (move reserved -> sold)

@@ -10,6 +10,7 @@ import {
   isActiveMiddleware,
   isStaffMiddleware,
 } from "../middlewares/authMiddleware.js";
+import { sendSellerPushNotification } from "../utils/sellerPush.js";
 
 dotenv.config();
 const router = express.Router();
@@ -19,6 +20,7 @@ const db = client.db(dbName);
 
 const Discounts = db.collection("discounts");
 const Users = db.collection("users"); // ✅ NEW: for seller enrichment (lookup)
+const SellerNotifications = db.collection("seller_notifications");
 
 // Staff guard (admin/staff)
 const staffGuard = [authMiddleware, isActiveMiddleware, isStaffMiddleware];
@@ -772,6 +774,34 @@ router.patch("/sellers/:id/status", staffGuard, async (req, res) => {
     const result = await Discounts.findOneAndUpdate({ _id: id }, update, {
       returnDocument: "after",
     });
+
+    try {
+      const sellerId =
+        existing?.sellerId || existing?.createdBy || existing?.userId || null;
+      const sellerIdStr = sellerId ? String(sellerId) : null;
+      const statusLabel = enabled ? "approved" : "rejected";
+
+      if (sellerIdStr) {
+        await SellerNotifications.insertOne({
+          sellerId: sellerIdStr,
+          type: "discount_status",
+          title: `Discount ${statusLabel}`,
+          body: `${existing?.name || "Your discount"} was ${statusLabel}.`,
+          link: "/seller/dashboard/discounts",
+          read: false,
+          createdAt: new Date(),
+        });
+
+        await sendSellerPushNotification({
+          sellerId: sellerIdStr,
+          title: `Discount ${statusLabel}`,
+          body: `${existing?.name || "Your discount"} was ${statusLabel}.`,
+          url: "/seller/dashboard/discounts",
+        });
+      }
+    } catch (notifyErr) {
+      console.error("Seller discount notification error:", notifyErr);
+    }
 
     res.json({ success: true, item: result.value });
   } catch (err) {

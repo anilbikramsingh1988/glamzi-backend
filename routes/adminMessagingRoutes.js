@@ -10,6 +10,7 @@ import {
   isActiveMiddleware,
   isStaffMiddleware,
 } from "../middlewares/authMiddleware.js";
+import { sendSellerPushNotification } from "../utils/sellerPush.js";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ const CustomerMessages = db.collection("customerSupportMessages");
 const Conversations = db.collection("conversations");
 const Messages = db.collection("messages");
 const Users = db.collection("users");
+const SellerNotifications = db.collection("seller_notifications");
 
 // ===== HELPERS =====
 
@@ -478,6 +480,30 @@ router.post(
           },
         }
       );
+
+      try {
+        const sellerId = conv.sellerId ? String(conv.sellerId) : null;
+        if (sellerId) {
+          await SellerNotifications.insertOne({
+            sellerId,
+            type: "message_new",
+            title: "New message from admin",
+            body: trimmed,
+            link: "/seller/dashboard/messages",
+            read: false,
+            createdAt: now,
+          });
+
+          await sendSellerPushNotification({
+            sellerId,
+            title: "New message from admin",
+            body: trimmed,
+            url: "/seller/dashboard/messages",
+          });
+        }
+      } catch (notifyErr) {
+        console.error("Seller message notification error:", notifyErr);
+      }
 
       return res.json({
         message: "Reply sent",
