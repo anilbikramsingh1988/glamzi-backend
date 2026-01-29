@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 
 import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { sendAdminPushNotification } from "../utils/adminPush.js";
 
 const router = express.Router();
 
@@ -332,6 +333,12 @@ router.post(
           brandId: result.insertedId,
           read: false,
           createdAt: now,
+        });
+
+        await sendAdminPushNotification({
+          title: "Brand pending approval",
+          body: `${trimmedName} is awaiting approval.`,
+          url: "/brands",
         });
       } catch (notifyErr) {
         console.error("Admin notification insert failed:", notifyErr);

@@ -3,6 +3,7 @@ import express from "express";
 
 import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { sendAdminPushNotification } from "../utils/adminPush.js";
 
 import {
   RETURN_STATUS,
@@ -373,6 +374,12 @@ router.post("/", authMiddleware, async (req, res) => {
       link: "/returns",
       read: false,
       createdAt: now(),
+    });
+
+    await sendAdminPushNotification({
+      title: "Return request pending",
+      body: `New return request for order ${order?.orderNumber || order?._id || ""}`,
+      url: "/orders/returns",
     });
 
     return res.status(201).json({ message: "Return request created.", created });

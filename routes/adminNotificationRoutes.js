@@ -2,6 +2,11 @@ import express from "express";
 import { ObjectId } from "mongodb";
 import { client } from "../dbConfig.js";
 import { authMiddleware, isStaffMiddleware } from "../middlewares/authMiddleware.js";
+import {
+  getVapidPublicKey,
+  upsertAdminSubscription,
+  removeAdminSubscription,
+} from "../utils/adminPush.js";
 
 const router = express.Router();
 const db = client.db(process.env.DB_NAME || "glamzi_ecommerce");
@@ -98,6 +103,39 @@ router.get("/unread-count", authMiddleware, isStaffMiddleware, async (req, res) 
   } catch (error) {
     console.error("Error fetching notification count:", error);
     res.status(500).json({ message: "Failed to fetch notification count" });
+  }
+});
+
+router.get("/vapid-public-key", authMiddleware, isStaffMiddleware, async (req, res) => {
+  res.json({ publicKey: getVapidPublicKey() });
+});
+
+router.post("/subscribe", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const { subscription } = req.body || {};
+    if (!subscription?.endpoint) {
+      return res.status(400).json({ message: "Subscription is required" });
+    }
+    const userId = req.user?.userId || req.user?._id || null;
+    await upsertAdminSubscription({ subscription, userId });
+    res.json({ message: "Subscription saved" });
+  } catch (error) {
+    console.error("Error saving subscription:", error);
+    res.status(500).json({ message: "Failed to save subscription" });
+  }
+});
+
+router.post("/unsubscribe", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (!endpoint) {
+      return res.status(400).json({ message: "Endpoint is required" });
+    }
+    await removeAdminSubscription(endpoint);
+    res.json({ message: "Subscription removed" });
+  } catch (error) {
+    console.error("Error removing subscription:", error);
+    res.status(500).json({ message: "Failed to remove subscription" });
   }
 });
 

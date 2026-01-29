@@ -2,6 +2,7 @@ import express from "express";
 import { ObjectId } from "mongodb";
 import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { sendAdminPushNotification } from "../utils/adminPush.js";
 
 const router = express.Router();
 
@@ -190,6 +191,12 @@ router.post("/admin/categories", authMiddleware, async (req, res) => {
         categoryId: result.insertedId,
         read: false,
         createdAt: now,
+      });
+
+      await sendAdminPushNotification({
+        title: "Category pending approval",
+        body: `${trimmedName} is awaiting approval.`,
+        url: "/categories",
       });
     } catch (notifyErr) {
       console.error("Admin notification insert failed:", notifyErr);

@@ -9,6 +9,7 @@ import { ObjectId } from "mongodb";
 
 import { client } from "../dbConfig.js";
 import { authMiddleware, isStaffMiddleware } from "../middlewares/authMiddleware.js";
+import { sendAdminPushNotification } from "../utils/adminPush.js";
 
 dotenv.config();
 
@@ -271,6 +272,12 @@ router.post("/seller/register", async (req, res) => {
         sellerId: result.insertedId,
         read: false,
         createdAt: now,
+      });
+
+      await sendAdminPushNotification({
+        title: "New seller request",
+        body: `${storeLabel} requested to join Glamzi.`,
+        url: "/sellers",
       });
     } catch (notifyErr) {
       console.error("Admin notification insert failed:", notifyErr);

@@ -12,6 +12,7 @@ import { fileURLToPath } from "url";
 import { ObjectId } from "mongodb";
 import { getDB } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { sendAdminPushNotification } from "../utils/adminPush.js";
 
 const router = express.Router();
 
@@ -1447,6 +1448,12 @@ router.post(
           link: "/products",
           read: false,
           createdAt: now,
+        });
+
+        await sendAdminPushNotification({
+          title: "Product pending approval",
+          body: `${productDoc.name || "New product"} is awaiting approval.`,
+          url: "/products/listing",
         });
       }
 

@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb";
 
 import { client } from "../dbConfig.js";
 import { authMiddleware, isActiveMiddleware } from "../middlewares/authMiddleware.js";
+import { sendAdminPushNotification } from "../utils/adminPush.js";
 
 dotenv.config();
 const router = express.Router();
@@ -598,6 +599,12 @@ router.post("/", sellerGuard, async (req, res) => {
         sellerId: String(sellerId),
         read: false,
         createdAt: now,
+      });
+
+      await sendAdminPushNotification({
+        title: "Seller discount pending",
+        body: `${name} discount is awaiting approval.`,
+        url: "/discounts/seller",
       });
     } catch (notifyErr) {
       console.error("Admin notification insert failed:", notifyErr);
