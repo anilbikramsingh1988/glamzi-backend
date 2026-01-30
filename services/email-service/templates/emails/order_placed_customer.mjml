@@ -1,4 +1,4 @@
-<mjml>
+ï»¿<mjml>
   <mj-head>
     <mj-title>Order Confirmed</mj-title>
     <mj-attributes>
@@ -25,10 +25,10 @@
     <!-- Hero -->
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
-        <mj-text font-size="20px" font-weight="800">Your order is confirmed ??</mj-text>
+        <mj-text font-size="20px" font-weight="800">Your order is confirmed ðŸ’–</mj-text>
         <mj-text class="muted">
-          Hi {{customerName}}, we’ve received your order <span class="pill">{{orderNumber}}</span>.
-          We’ll notify you when it ships.
+          Hi {{customerName}}, weâ€™ve received your order <span class="pill">{{orderNumber}}</span>.
+          Weâ€™ll notify you when it ships.
         </mj-text>
       </mj-column>
     </mj-section>
@@ -42,10 +42,10 @@
           {{#each items}}
             <mj-text>
               <strong>{{name}}</strong>
-              {{#if variant}}<span class="muted"> • {{variant}}</span>{{/if}}
+              {{#if variant}}<span class="muted"> â€¢ {{variant}}</span>{{/if}}
               <br/>
               <span class="muted">Qty:</span> {{qty}}
-              <span class="muted"> • Price:</span> {{price}}
+              <span class="muted"> â€¢ Price:</span> {{price}}
             </mj-text>
           {{/each}}
         {{else}}
@@ -72,7 +72,7 @@
       <mj-column>
         <mj-button href="{{orderLink}}">View your order</mj-button>
         <mj-text class="muted small" padding-top="10px">
-          ? FREE DELIVERY ? FREE RETURNS
+          âœ“ FREE DELIVERY âœ“ FREE RETURNS
         </mj-text>
       </mj-column>
     </mj-section>
@@ -82,7 +82,7 @@
       <mj-column>
         <mj-text class="muted small">
           Need help? Contact us at <strong>{{supportEmail}}</strong>{{#if supportPhone}} or {{supportPhone}}{{/if}}.
-          <br/>© {{year}} {{brandName}}. All rights reserved.
+          <br/>Â© {{year}} {{brandName}}. All rights reserved.
         </mj-text>
       </mj-column>
     </mj-section>
