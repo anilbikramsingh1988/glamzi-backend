@@ -93,7 +93,7 @@ router.get("/", requireAdminOrInternal, async (req, res) => {
     latestVersion: latestMap.get(t.key) || null,
   }));
 
-  res.json({ ok: true, data });
+  res.json({ ok: true, data: { items: data } });
 });
 
 router.post("/", requireAdminOrInternal, async (req, res) => {
@@ -130,7 +130,8 @@ router.post("/", requireAdminOrInternal, async (req, res) => {
 router.get("/:templateKey/versions", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
   const list = await db.collection("emailTemplateVersions").find({ templateKey: req.params.templateKey }).sort({ version: -1 }).toArray();
-  res.json({ ok: true, data: list });
+  const template = await db.collection("emailTemplates").findOne({ key: templateKey });
+  res.json({ ok: true, data: { template, versions: list } });
 });
 
 router.post("/:templateKey/versions", requireAdminOrInternal, async (req, res) => {
