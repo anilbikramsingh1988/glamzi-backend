@@ -23,7 +23,10 @@
     "daily-settlement": "node workers/dailySettlementWorker.js",
     "rollup-followers": "node jobs/rollupStoreFollowersDaily.js",
     "create-followers-indexes": "node scripts/createStoreFollowerIndexes.js",
-    "test:followers": "node tests/storeFollowPrivacy.test.mjs"
+    "test:followers": "node tests/storeFollowPrivacy.test.mjs",
+    "outbox:worker": "node workers/outboxWorker.js",
+    "outbox:once": "node jobs/processOutboxOnce.js",
+    "outbox:indexes": "node scripts/createOutboxIndexes.js"
   },
   "dependencies": {
     "axios": "^1.13.2",

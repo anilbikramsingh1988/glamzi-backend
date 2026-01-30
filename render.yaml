@@ -3,3 +3,7 @@ cronJobs:
     env: node
     schedule: "30 18 * * *"
     command: "node jobs/rollupStoreFollowersDaily.js"
+  - name: glamzi-outbox-dispatch
+    env: node
+    schedule: "*/1 * * * *"
+    command: "node jobs/processOutboxOnce.js"

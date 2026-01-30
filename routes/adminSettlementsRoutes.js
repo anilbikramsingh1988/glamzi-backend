@@ -9,7 +9,7 @@ import express from "express";
 import { ObjectId } from "mongodb";
 import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
-import { notifySeller } from "../utils/notify.js";
+import { enqueueNotification } from "../utils/outbox.js";
 
 const router = express.Router();
 
@@ -1302,7 +1302,7 @@ router.patch("/settlements/batches/:id/status", authMiddleware, ensureFinanceAcc
             : `Your settlement batch status is now ${statusLabel}.`;
 
         for (const sid of sellerIds) {
-          await notifySeller({
+          await enqueueNotification("seller", {
             sellerId: sid,
             type: "settlement_update",
             title,

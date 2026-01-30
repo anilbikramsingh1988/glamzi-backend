@@ -7,6 +7,7 @@ import { client, getDB } from "../dbConfig.js";
 import { postTransactionGroup } from "../services/finance/postTransactionGroup.js";
 import { authMiddleware, isActiveMiddleware } from "../middlewares/authMiddleware.js";
 import { bookShipmentFactory, bookReturnShipment } from "../utils/shippingBridge.js";
+import { enqueueNotification } from "../utils/outbox.js";
 import {
   RETURN_STATUS,
   canTransitionReturnStatus,
@@ -35,7 +36,6 @@ const CommissionSettings = db.collection("commissionSettings");
 
 // ✅ audit collections
 const OrderAuditLogs = db.collection("orderAuditLogs");
-const CustomerNotifications = db.collection("customerNotifications");
 const InvoiceAuditLogs = db.collection("invoiceAuditLogs");
 
 /* ===============================
@@ -924,15 +924,16 @@ async function notifyCustomer(order, nextStatus) {
         ? "Your order is completed"
         : "Order status updated";
 
-    await CustomerNotifications.insertOne({
-      userId: uid,
+    await enqueueNotification("customer", {
+      customerId: uid,
       orderId: order._id,
       orderNumber: order.orderNumber || null,
       type: "order_status",
       status: st,
       title,
-      isRead: false,
-      createdAt: new Date(),
+      body: `Order status updated to ${st}.`,
+      link: "/orders",
+      meta: { orderId: String(order._id || ""), status: st },
     });
   } catch (e) {
     console.warn("⚠️ customerNotifications insert failed:", e?.message || e);

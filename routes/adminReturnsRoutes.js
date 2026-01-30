@@ -15,7 +15,7 @@ import {
 import { casReturnStatus } from "./_returnHelpers.js";
 
 import { logShippingBookingFailure } from "../utils/shippingLog.js";
-import { notifyCustomer, notifySeller } from "../utils/notify.js";
+import { enqueueNotification } from "../utils/outbox.js";
 
 const router = express.Router();
 const db = client.db(process.env.DB_NAME || "glamzi_ecommerce");
@@ -1007,7 +1007,7 @@ router.patch(
 
       const orderLabel = fresh.orderNumber || fresh.orderId || "";
       try {
-        await notifySeller({
+        await enqueueNotification("seller", {
           sellerId: fresh.sellerId,
           type: "return_approved",
           title: "Return approved",
@@ -1020,7 +1020,7 @@ router.patch(
       }
 
       try {
-        await notifyCustomer({
+        await enqueueNotification("customer", {
           customerId: fresh.customerId,
           orderId: fresh.orderId,
           orderNumber: orderLabel,
@@ -1066,7 +1066,7 @@ router.patch(
 
       const orderLabel = fresh.orderNumber || fresh.orderId || "";
       try {
-        await notifySeller({
+        await enqueueNotification("seller", {
           sellerId: fresh.sellerId,
           type: "return_rejected",
           title: "Return rejected",
@@ -1079,7 +1079,7 @@ router.patch(
       }
 
       try {
-        await notifyCustomer({
+        await enqueueNotification("customer", {
           customerId: fresh.customerId,
           orderId: fresh.orderId,
           orderNumber: orderLabel,

@@ -4,7 +4,7 @@ import express from "express";
 import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { sendAdminPushNotification } from "../utils/adminPush.js";
-import { notifyCustomer, notifySeller } from "../utils/notify.js";
+import { enqueueNotification } from "../utils/outbox.js";
 
 import {
   RETURN_STATUS,
@@ -383,13 +383,13 @@ router.post("/", authMiddleware, async (req, res) => {
       url: "/orders/returns",
     });
 
-    // Seller + Customer notifications
+    // Seller + Customer notifications (outbox)
     const orderLabel = order?.orderNumber || order?._id || "";
     const sellerIdsToNotify = created.map((c) => String(c?.sellerId || "")).filter(Boolean);
 
     for (const sid of sellerIdsToNotify) {
       try {
-        await notifySeller({
+        await enqueueNotification("seller", {
           sellerId: sid,
           type: "return_requested",
           title: "Return request received",
@@ -403,7 +403,7 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 
     try {
-      await notifyCustomer({
+      await enqueueNotification("customer", {
         customerId,
         orderId,
         orderNumber: orderLabel,

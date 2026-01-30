@@ -10,8 +10,7 @@ import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { applyDiscounts } from "../utils/discountEngine.js";
 import multer from "multer";
 import { bookShipmentFactory, bookReturnShipment } from "../utils/shippingBridge.js";
-import { sendSellerPushNotification } from "../utils/sellerPush.js";
-import { notifyCustomer } from "../utils/notify.js";
+import { enqueueNotification } from "../utils/outbox.js";
 
 const router = express.Router();
 
@@ -28,7 +27,6 @@ const Invoices = db.collection("invoices");
 const Discounts = db.collection("discounts");
 const FlashReservations = db.collection("flashReservations");
 const CommissionSettings = db.collection("commissionSettings");
-const SellerNotifications = db.collection("seller_notifications");
 
 const bookShipmentFireAndForget = bookShipmentFactory({ Orders, Users });
 
@@ -2441,24 +2439,15 @@ router.post("/", authMiddleware, async (req, res) => {
         )
       );
 
-      const createdAt = new Date();
       for (const sellerId of uniqueSellerIds) {
         try {
-          await SellerNotifications.insertOne({
+          await enqueueNotification("seller", {
             sellerId,
             type: "order_new",
             title: "New order received",
             body: `You have a new order ${orderDocOut.orderNumber || ""}`.trim(),
             link: "/seller/dashboard/orders/orderslisting",
-            read: false,
-            createdAt,
-          });
-
-          await sendSellerPushNotification({
-            sellerId,
-            title: "New order received",
-            body: `You have a new order ${orderDocOut.orderNumber || ""}`.trim(),
-            url: "/seller/dashboard/orders/orderslisting",
+            meta: { orderId: String(insertedId), orderNumber: orderDocOut.orderNumber || "" },
           });
         } catch (notifyErr) {
           console.error("Seller order notification error:", notifyErr);
@@ -2466,9 +2455,9 @@ router.post("/", authMiddleware, async (req, res) => {
       }
     }
 
-    // Customer in-app notification (order placed)
+    // Customer in-app notification (order placed) -> outbox
     try {
-      await notifyCustomer({
+      await enqueueNotification("customer", {
         customerId: orderDocOut.userId,
         orderId: insertedId,
         orderNumber: orderDocOut.orderNumber || null,
