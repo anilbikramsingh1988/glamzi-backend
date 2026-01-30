@@ -28,6 +28,7 @@
     "outbox:once": "node jobs/processOutboxOnce.js",
     "outbox:indexes": "node scripts/createOutboxIndexes.js",
     "sendgrid:test": "node scripts/sendgrid-test.mjs",
+    "email:seed-templates": "node services/email-service/scripts/seedTemplateVersions.js",
     "notify:worker": "node workers/notificationWorker.js",
     "notify:once": "node workers/notificationWorker.js --once",
     "notify:indexes": "node scripts/createNotificationIndexes.js"

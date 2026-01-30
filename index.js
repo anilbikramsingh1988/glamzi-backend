@@ -129,6 +129,7 @@ import storeFollowRoutes from "./routes/storeFollowRoutes.js";
 import subscriberRoutes from "./routes/subscriberRoutes.js";
 import emailServiceRoutes from "./services/email-service/routes/emailRoutes.js";
 import adminEmailTemplateRoutes from "./services/email-service/routes/adminEmailTemplateRoutes.js";
+import { seedTemplateVersions } from "./services/email-service/scripts/seedTemplateVersions.js";
 
 // =========================
 // DISCOUNTS / COUPONS
@@ -427,8 +428,17 @@ const PORT = process.env.PORT || 3001;
 
 client
   .connect()
-  .then(() => {
+  .then(async () => {
     console.log("✅ Connected to MongoDB");
+
+    if (process.env.SEED_EMAIL_TEMPLATES_ON_START === "true") {
+      try {
+        const { seeded, skipped } = await seedTemplateVersions();
+        console.log(`[EMAIL_TEMPLATES_SEED] seeded=${seeded} skipped=${skipped}`);
+      } catch (err) {
+        console.error("[EMAIL_TEMPLATES_SEED] failed", err);
+      }
+    }
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });

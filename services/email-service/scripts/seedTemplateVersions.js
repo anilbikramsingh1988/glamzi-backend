@@ -32,68 +32,81 @@ const PREVIEW = {
 
 const TEMPLATE_KEYS = Object.keys(SUBJECTS);
 
-const db = await connectDb();
-const now = new Date();
+export async function seedTemplateVersions() {
+  const db = await connectDb();
+  const now = new Date();
 
-let seeded = 0;
-let skipped = 0;
+  let seeded = 0;
+  let skipped = 0;
 
-for (const key of TEMPLATE_KEYS) {
-  const filePath = path.join(templatesDir, `${key}.mjml`);
-  if (!fs.existsSync(filePath)) {
-    console.warn(`Missing template file: ${filePath}`);
-    skipped += 1;
-    continue;
-  }
+  for (const key of TEMPLATE_KEYS) {
+    const filePath = path.join(templatesDir, `${key}.mjml`);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`Missing template file: ${filePath}`);
+      skipped += 1;
+      continue;
+    }
 
-  const mjmlRaw = fs.readFileSync(filePath, "utf-8");
+    const mjmlRaw = fs.readFileSync(filePath, "utf-8");
 
-  const latest = await db
-    .collection("emailTemplateVersions")
-    .findOne({ templateKey: key }, { sort: { version: -1 } });
+    const latest = await db
+      .collection("emailTemplateVersions")
+      .findOne({ templateKey: key }, { sort: { version: -1 } });
 
-  const alreadyPublishedSame =
-    latest &&
-    latest.status === "published" &&
-    latest.mjmlRaw === mjmlRaw &&
-    latest.subject === SUBJECTS[key] &&
-    latest.previewText === PREVIEW[key];
+    const alreadyPublishedSame =
+      latest &&
+      latest.status === "published" &&
+      latest.mjmlRaw === mjmlRaw &&
+      latest.subject === SUBJECTS[key] &&
+      latest.previewText === PREVIEW[key];
 
-  if (alreadyPublishedSame) {
-    skipped += 1;
-    continue;
-  }
+    if (alreadyPublishedSame) {
+      skipped += 1;
+      continue;
+    }
 
-  const nextVersion = (latest?.version || 0) + 1;
+    const nextVersion = (latest?.version || 0) + 1;
 
-  if (latest && latest.status === "published") {
-    await db.collection("emailTemplateVersions").updateMany(
-      { templateKey: key, status: "published" },
-      { $set: { status: "archived" } }
+    if (latest && latest.status === "published") {
+      await db.collection("emailTemplateVersions").updateMany(
+        { templateKey: key, status: "published" },
+        { $set: { status: "archived" } }
+      );
+    }
+
+    await db.collection("emailTemplateVersions").insertOne({
+      templateKey: key,
+      version: nextVersion,
+      status: "published",
+      subject: SUBJECTS[key],
+      previewText: PREVIEW[key],
+      mjmlRaw,
+      contentBlocks: null,
+      createdBy: "system",
+      changeNote: "Seeded from repo templates",
+      createdAt: now,
+      publishedAt: now,
+    });
+
+    await db.collection("emailTemplates").updateOne(
+      { key },
+      { $set: { updatedAt: now } }
     );
+
+    seeded += 1;
   }
 
-  await db.collection("emailTemplateVersions").insertOne({
-    templateKey: key,
-    version: nextVersion,
-    status: "published",
-    subject: SUBJECTS[key],
-    previewText: PREVIEW[key],
-    mjmlRaw,
-    contentBlocks: null,
-    createdBy: "system",
-    changeNote: "Seeded from repo templates",
-    createdAt: now,
-    publishedAt: now,
-  });
-
-  await db.collection("emailTemplates").updateOne(
-    { key },
-    { $set: { updatedAt: now } }
-  );
-
-  seeded += 1;
+  return { seeded, skipped };
 }
 
-console.log(`Seeded ${seeded} templates. Skipped ${skipped}.`);
-process.exit(0);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedTemplateVersions()
+    .then(({ seeded, skipped }) => {
+      console.log(`Seeded ${seeded} templates. Skipped ${skipped}.`);
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("Seed failed:", err);
+      process.exit(1);
+    });
+}
