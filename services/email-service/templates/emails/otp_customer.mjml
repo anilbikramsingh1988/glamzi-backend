@@ -1,4 +1,4 @@
-<mjml>
+﻿<mjml>
   <mj-head>
     <mj-title>Verification code</mj-title>
     <mj-attributes>
@@ -24,24 +24,25 @@
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="18px" font-weight="800">Your verification code</mj-text>
-        <mj-text class="muted">Use the code below to verify your action.</mj-text>
+        <mj-text css-class="muted">Use the code below to verify your action.</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text align="center" css-class="pill">{{otpCode}}</mj-text>
+        <mj-text align="center" css-css-class="pill">{{otpCode}}</mj-text>
         {{#if otpExpiry}}
-          <mj-text class="muted small" align="center">Valid for {{otpExpiry}}</mj-text>
+          <mj-text css-class="muted small" align="center">Valid for {{otpExpiry}}</mj-text>
         {{/if}}
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text class="muted small">If you did not request this, contact {{supportEmail}}.</mj-text>
-        <mj-text class="muted small">� {{year}} {{brandName}}.</mj-text>
+        <mj-text css-class="muted small">If you did not request this, contact {{supportEmail}}.</mj-text>
+        <mj-text css-class="muted small">© {{year}} {{brandName}}.</mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
 </mjml>
+

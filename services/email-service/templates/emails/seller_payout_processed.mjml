@@ -1,4 +1,4 @@
-<mjml>
+﻿<mjml>
   <mj-head>
     <mj-title>Payout processed</mj-title>
     <mj-attributes>
@@ -24,20 +24,20 @@
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="18px" font-weight="800">Payout processed</mj-text>
-        <mj-text class="muted">
+        <mj-text css-class="muted">
           Store: <strong>{{sellerStoreName}}</strong><br/>
-          Batch: <span class="pill">{{payoutBatch}}</span>
+          Batch: <span css-class="pill">{{payoutBatch}}</span>
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-class="card" padding="14px">
+      <mj-column css-css-class="card" padding="14px">
         <mj-text font-weight="700">Payout summary</mj-text>
         <mj-text>
-          <span class="muted">Amount:</span> {{payoutAmount}}<br/>
-          <span class="muted">Method:</span> {{payoutMethod}}<br/>
-          {{#if payoutReference}}<span class="muted">Reference:</span> {{payoutReference}}<br/>{{/if}}
+          <span css-class="muted">Amount:</span> {{payoutAmount}}<br/>
+          <span css-class="muted">Method:</span> {{payoutMethod}}<br/>
+          {{#if payoutReference}}<span css-class="muted">Reference:</span> {{payoutReference}}<br/>{{/if}}
         </mj-text>
       </mj-column>
     </mj-section>
@@ -45,14 +45,15 @@
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
         <mj-button href="{{payoutLink}}">View payout details</mj-button>
-        <mj-text class="muted small" padding-top="10px">Questions? {{settlementsEmail}}</mj-text>
+        <mj-text css-class="muted small" padding-top="10px">Questions? {{settlementsEmail}}</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text class="muted small">� {{year}} {{brandName}}.</mj-text>
+        <mj-text css-class="muted small">© {{year}} {{brandName}}.</mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
 </mjml>
+

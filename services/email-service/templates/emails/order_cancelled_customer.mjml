@@ -1,4 +1,4 @@
-<mjml>
+﻿<mjml>
   <mj-head>
     <mj-title>Order cancelled</mj-title>
     <mj-attributes>
@@ -24,20 +24,20 @@
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="20px" font-weight="800">Your order was cancelled</mj-text>
-        <mj-text class="muted">
-          Order <span class="pill">{{orderNumber}}</span> has been cancelled.
+        <mj-text css-class="muted">
+          Order <span css-class="pill">{{orderNumber}}</span> has been cancelled.
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-class="card" padding="14px">
+      <mj-column css-css-class="card" padding="14px">
         <mj-text font-weight="700">Cancellation details</mj-text>
         {{#if cancelReason}}
-          <mj-text class="muted">Reason: {{cancelReason}}</mj-text>
+          <mj-text css-class="muted">Reason: {{cancelReason}}</mj-text>
         {{/if}}
         {{#if refundStatus}}
-          <mj-text class="muted">Refund: {{refundStatus}}</mj-text>
+          <mj-text css-class="muted">Refund: {{refundStatus}}</mj-text>
         {{/if}}
       </mj-column>
     </mj-section>
@@ -45,14 +45,15 @@
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
         <mj-button href="{{supportLink}}">Contact support</mj-button>
-        <mj-text class="muted small" padding-top="10px">Need help? {{supportEmail}}</mj-text>
+        <mj-text css-class="muted small" padding-top="10px">Need help? {{supportEmail}}</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text class="muted small">� {{year}} {{brandName}}.</mj-text>
+        <mj-text css-class="muted small">© {{year}} {{brandName}}.</mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
 </mjml>
+

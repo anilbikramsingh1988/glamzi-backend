@@ -1,4 +1,4 @@
-<mjml>
+﻿<mjml>
   <mj-head>
     <mj-title>Order delivered</mj-title>
     <mj-attributes>
@@ -24,30 +24,31 @@
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="20px" font-weight="800">Your order was delivered</mj-text>
-        <mj-text class="muted">
-          Order <span class="pill">{{orderNumber}}</span> has been delivered.
+        <mj-text css-class="muted">
+          Order <span css-class="pill">{{orderNumber}}</span> has been delivered.
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-class="card" padding="14px">
+      <mj-column css-css-class="card" padding="14px">
         <mj-text font-weight="700">Thank you for shopping</mj-text>
-        <mj-text class="muted">We hope you love your items. If there is any issue, our support team is ready to help.</mj-text>
+        <mj-text css-class="muted">We hope you love your items. If there is any issue, our support team is ready to help.</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
         <mj-button href="{{orderLink}}">View order details</mj-button>
-        <mj-text class="muted small" padding-top="10px">Questions? {{supportEmail}}</mj-text>
+        <mj-text css-class="muted small" padding-top="10px">Questions? {{supportEmail}}</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text class="muted small">� {{year}} {{brandName}}.</mj-text>
+        <mj-text css-class="muted small">© {{year}} {{brandName}}.</mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
 </mjml>
+

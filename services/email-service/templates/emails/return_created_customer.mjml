@@ -24,17 +24,17 @@
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="18px" font-weight="800">We received your return request ✅</mj-text>
-        <mj-text class="muted">
-          Return: <span class="pill">{{returnReference}}</span><br/>
+        <mj-text css-class="muted">
+          Return: <span css-class="pill">{{returnReference}}</span><br/>
           Order: <strong>{{orderNumber}}</strong>
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-class="card" padding="14px">
+      <mj-column css-css-class="card" padding="14px">
         <mj-text font-weight="700">Next steps</mj-text>
-        <mj-text class="muted">
+        <mj-text css-class="muted">
           We’ll review your request and update you shortly.
           {{#if expectedResponseWindow}} Typical response time: <strong>{{expectedResponseWindow}}</strong>.{{/if}}
         </mj-text>
@@ -45,8 +45,8 @@
           {{#each items}}
             <mj-text>
               <strong>{{name}}</strong>
-              <span class="muted"> • Qty:</span> {{qty}}
-              {{#if reason}}<br/><span class="muted">Reason:</span> {{reason}}{{/if}}
+              <span css-class="muted"> • Qty:</span> {{qty}}
+              {{#if reason}}<br/><span css-class="muted">Reason:</span> {{reason}}{{/if}}
             </mj-text>
           {{/each}}
         {{/if}}
@@ -56,7 +56,7 @@
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
         <mj-button href="{{returnLink}}">View return status</mj-button>
-        <mj-text class="muted small" padding-top="10px">
+        <mj-text css-class="muted small" padding-top="10px">
           Need help? {{supportEmail}}
         </mj-text>
       </mj-column>
@@ -64,8 +64,9 @@
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text class="muted small">© {{year}} {{brandName}}.</mj-text>
+        <mj-text css-class="muted small">© {{year}} {{brandName}}.</mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
 </mjml>
+

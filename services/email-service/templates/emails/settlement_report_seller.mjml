@@ -1,4 +1,4 @@
-<mjml>
+﻿<mjml>
   <mj-head>
     <mj-title>Settlement report</mj-title>
     <mj-attributes>
@@ -24,27 +24,27 @@
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="18px" font-weight="800">Settlement report ready</mj-text>
-        <mj-text class="muted">
+        <mj-text css-class="muted">
           Store: <strong>{{sellerStoreName}}</strong><br/>
-          Date: <span class="pill">{{dateKey}}</span>
+          Date: <span css-class="pill">{{dateKey}}</span>
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-class="card" padding="14px">
+      <mj-column css-css-class="card" padding="14px">
         <mj-text font-weight="700">Summary</mj-text>
         <mj-text>
-          <span class="muted">Gross sales:</span> {{grossSales}}<br/>
-          <span class="muted">Returns/refunds:</span> {{returnsTotal}}<br/>
-          <span class="muted">Commission:</span> {{commissionTotal}}<br/>
-          <span class="muted">Shipping charges:</span> {{shippingTotal}}<br/>
+          <span css-class="muted">Gross sales:</span> {{grossSales}}<br/>
+          <span css-class="muted">Returns/refunds:</span> {{returnsTotal}}<br/>
+          <span css-class="muted">Commission:</span> {{commissionTotal}}<br/>
+          <span css-class="muted">Shipping charges:</span> {{shippingTotal}}<br/>
           <mj-divider border-color="#e5e7eb" />
           <strong>Net settlement:</strong> {{netSettlement}}
         </mj-text>
 
         {{#if note}}
-          <mj-text class="muted small">{{note}}</mj-text>
+          <mj-text css-class="muted small">{{note}}</mj-text>
         {{/if}}
       </mj-column>
     </mj-section>
@@ -52,7 +52,7 @@
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
         <mj-button href="{{sellerSettlementLink}}">View / Download report</mj-button>
-        <mj-text class="muted small" padding-top="10px">
+        <mj-text css-class="muted small" padding-top="10px">
           Questions? {{settlementsEmail}}
         </mj-text>
       </mj-column>
@@ -60,8 +60,9 @@
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text class="muted small">� {{year}} {{brandName}}.</mj-text>
+        <mj-text css-class="muted small">© {{year}} {{brandName}}.</mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
 </mjml>
+
