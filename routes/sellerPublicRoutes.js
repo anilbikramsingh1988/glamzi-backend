@@ -225,6 +225,17 @@ router.get("/public/:sellerId/products", async (req, res) => {
       ? new ObjectId(sellerIdStr)
       : null;
 
+    const approvedFilter = {
+      $or: [
+        { approvalStatus: { $in: ["approved", "active"] } },
+        { status: { $in: ["approved", "active"] } },
+        { isApproved: true },
+        { approved: true },
+        { isActive: true },
+        { active: true },
+      ],
+    };
+
     const products = await Products.find(
       {
         $or: [
@@ -233,6 +244,7 @@ router.get("/public/:sellerId/products", async (req, res) => {
         ],
         status: { $ne: "inactive" },
         deleted: { $ne: true },
+        ...approvedFilter,
       },
       {
         projection: {
@@ -245,11 +257,20 @@ router.get("/public/:sellerId/products", async (req, res) => {
           sellerId: 1,
           userId: 1,
           category: 1,
+          categoryName: 1,
+          categoryTitle: 1,
+          categorySlug: 1,
           brand: 1,
           createdAt: 1,
           soldCount: 1,
           quantity: 1,
           description: 1,
+          approvalStatus: 1,
+          status: 1,
+          isApproved: 1,
+          approved: 1,
+          isActive: 1,
+          active: 1,
         },
       }
     )
