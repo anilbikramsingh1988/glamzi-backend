@@ -129,7 +129,8 @@ router.post("/", requireAdminOrInternal, async (req, res) => {
 
 router.get("/:templateKey/versions", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
-  const list = await db.collection("emailTemplateVersions").find({ templateKey: req.params.templateKey }).sort({ version: -1 }).toArray();
+  const templateKey = req.params.templateKey;
+  const list = await db.collection("emailTemplateVersions").find({ templateKey }).sort({ version: -1 }).toArray();
   const template = await db.collection("emailTemplates").findOne({ key: templateKey });
   res.json({ ok: true, data: { template, versions: list } });
 });
