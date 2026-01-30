@@ -1,8 +1,41 @@
 import mjml2html from "mjml";
 import Handlebars from "handlebars";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { connectDb } from "../db.js";
 import { mergeTransactionalBlocks } from "./templateMerger.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const baseTemplatePath = path.resolve(__dirname, "..", "templates", "emails", "_base_reference.mjml");
+let cachedBaseHead = null;
+
+function loadBaseHead() {
+  if (cachedBaseHead !== null) return cachedBaseHead;
+  if (!fs.existsSync(baseTemplatePath)) {
+    cachedBaseHead = "";
+    return cachedBaseHead;
+  }
+  const raw = fs.readFileSync(baseTemplatePath, "utf-8");
+  const match = raw.match(/<mj-head>([\s\S]*?)<\/mj-head>/i);
+  cachedBaseHead = match ? match[1].trim() : "";
+  return cachedBaseHead;
+}
+
+function applyBaseHead(mjmlRaw) {
+  if (!mjmlRaw) return mjmlRaw;
+  if (mjmlRaw.includes("glamzi-base-head")) return mjmlRaw;
+  const baseHead = loadBaseHead();
+  if (!baseHead) return mjmlRaw;
+
+  if (mjmlRaw.includes("<mj-head>")) {
+    return mjmlRaw.replace("<mj-head>", `<mj-head>\n${baseHead}\n`);
+  }
+
+  return mjmlRaw.replace("<mjml>", `<mjml>\n  <mj-head>\n${baseHead}\n  </mj-head>`);
+}
 
 export async function renderTemplateByKey({ templateKey, variables = {} }) {
   const db = await connectDb();
@@ -32,7 +65,7 @@ export async function renderTemplateByKey({ templateKey, variables = {} }) {
     mjmlRaw = version.mjmlRaw || "";
   }
 
-  const compiled = Handlebars.compile(mjmlRaw);
+  const compiled = Handlebars.compile(applyBaseHead(mjmlRaw));
   const hydrated = compiled(variables);
   const { html, errors } = mjml2html(hydrated, { validationLevel: "soft" });
 
