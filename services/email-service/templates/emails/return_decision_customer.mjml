@@ -1,0 +1,58 @@
+<mjml>
+  <mj-head>
+    <mj-title>Return decision</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+      <mj-text font-size="14px" line-height="1.6" color="#111827" />
+      <mj-button background-color="{{brandPrimaryColor}}" color="#ffffff" font-size="14px" font-weight="700" border-radius="10px" padding="12px 18px" />
+    </mj-attributes>
+    <mj-style>
+      .muted { color: #6b7280; }
+      .small { font-size: 12px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 14px; }
+      .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb; }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#f9fafb">
+    <mj-section background-color="#ffffff" padding="18px 18px 8px">
+      <mj-column>
+        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="8px 18px 0px">
+      <mj-column>
+        <mj-text font-size="18px" font-weight="800">Return decision</mj-text>
+        <mj-text class="muted">
+          Return <span class="pill">{{returnReference}}</span> has been {{decision}}.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="12px 18px">
+      <mj-column css-class="card" padding="14px">
+        <mj-text font-weight="700">Decision details</mj-text>
+        {{#if decisionReason}}
+          <mj-text class="muted">Reason: {{decisionReason}}</mj-text>
+        {{/if}}
+        {{#if refundAmount}}
+          <mj-text class="muted">Refund amount: {{refundAmount}}</mj-text>
+        {{/if}}
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="4px 18px 18px">
+      <mj-column>
+        <mj-button href="{{returnLink}}">View return</mj-button>
+        <mj-text class="muted small" padding-top="10px">Support: {{supportEmail}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="12px 18px">
+      <mj-column>
+        <mj-text class="muted small">© {{year}} {{brandName}}.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
