@@ -5,20 +5,21 @@ import mjml2html from "mjml";
 import Handlebars from "handlebars";
 
 import { connectDb } from "../db.js";
+import { adminAuthMiddleware } from "../../../routes/adminRoutes.js";
 import { mergeTransactionalBlocks } from "../services/templateMerger.js";
 import { sendEmail } from "../services/providers/sendgrid.js";
 
 const router = express.Router();
 
-function requireInternalToken(req, res, next) {
+function requireInternalToken(req) {
   const token = req.headers["x-internal-token"];
-  if (!process.env.EMAIL_SERVICE_INTERNAL_TOKEN) {
-    return res.status(500).json({ ok: false, error: { code: "CONFIG", message: "Internal token not configured" } });
-  }
-  if (!token || token !== process.env.EMAIL_SERVICE_INTERNAL_TOKEN) {
-    return res.status(401).json({ ok: false, error: { code: "UNAUTHORIZED", message: "Missing or invalid token" } });
-  }
-  return next();
+  if (!process.env.EMAIL_SERVICE_INTERNAL_TOKEN) return false;
+  return Boolean(token && token === process.env.EMAIL_SERVICE_INTERNAL_TOKEN);
+}
+
+function requireAdminOrInternal(req, res, next) {
+  if (requireInternalToken(req)) return next();
+  return adminAuthMiddleware(req, res, next);
 }
 
 const templateRegistrySchema = z.object({
@@ -62,7 +63,7 @@ async function buildMjmlFromVersion(template, version, variables) {
   return version.mjmlRaw || "";
 }
 
-router.get("/", requireInternalToken, async (req, res) => {
+router.get("/", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
   const templates = await db.collection("emailTemplates").find({}).sort({ key: 1 }).toArray();
   const keys = templates.map((t) => t.key);
@@ -85,7 +86,7 @@ router.get("/", requireInternalToken, async (req, res) => {
   res.json({ ok: true, data });
 });
 
-router.post("/", requireInternalToken, async (req, res) => {
+router.post("/", requireAdminOrInternal, async (req, res) => {
   const parse = templateRegistrySchema.safeParse(req.body || {});
   if (!parse.success) {
     return res.status(400).json({ ok: false, error: { code: "VALIDATION", message: "Invalid registry", details: parse.error.flatten() } });
@@ -116,13 +117,13 @@ router.post("/", requireInternalToken, async (req, res) => {
   }
 });
 
-router.get("/:templateKey/versions", requireInternalToken, async (req, res) => {
+router.get("/:templateKey/versions", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
   const list = await db.collection("emailTemplateVersions").find({ templateKey: req.params.templateKey }).sort({ version: -1 }).toArray();
   res.json({ ok: true, data: list });
 });
 
-router.post("/:templateKey/versions", requireInternalToken, async (req, res) => {
+router.post("/:templateKey/versions", requireAdminOrInternal, async (req, res) => {
   const parse = versionSchema.safeParse(req.body || {});
   if (!parse.success) {
     return res.status(400).json({ ok: false, error: { code: "VALIDATION", message: "Invalid version", details: parse.error.flatten() } });
@@ -169,7 +170,7 @@ router.post("/:templateKey/versions", requireInternalToken, async (req, res) => 
   res.status(201).json({ ok: true, data: doc });
 });
 
-router.get("/:templateKey/versions/:version/preview", requireInternalToken, async (req, res) => {
+router.get("/:templateKey/versions/:version/preview", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
   const templateKey = req.params.templateKey;
   const version = Number(req.params.version);
@@ -187,7 +188,7 @@ router.get("/:templateKey/versions/:version/preview", requireInternalToken, asyn
   res.json({ ok: true, data: { html } });
 });
 
-router.post("/:templateKey/versions/:version/test-send", requireInternalToken, async (req, res) => {
+router.post("/:templateKey/versions/:version/test-send", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
   const templateKey = req.params.templateKey;
   const version = Number(req.params.version);
@@ -218,7 +219,7 @@ router.post("/:templateKey/versions/:version/test-send", requireInternalToken, a
   res.json({ ok: true });
 });
 
-router.post("/:templateKey/versions/:version/publish", requireInternalToken, async (req, res) => {
+router.post("/:templateKey/versions/:version/publish", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
   const templateKey = req.params.templateKey;
   const version = Number(req.params.version);
@@ -233,7 +234,7 @@ router.post("/:templateKey/versions/:version/publish", requireInternalToken, asy
   res.json({ ok: true });
 });
 
-router.post("/:templateKey/versions/:version/rollback", requireInternalToken, async (req, res) => {
+router.post("/:templateKey/versions/:version/rollback", requireAdminOrInternal, async (req, res) => {
   const db = await connectDb();
   const templateKey = req.params.templateKey;
   const version = Number(req.params.version);
