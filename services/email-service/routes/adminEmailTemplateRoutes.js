@@ -49,9 +49,69 @@ const versionSchema = z.object({
 });
 
 function buildSampleVariables(allowed = []) {
+  const defaults = {
+    brandName: "Glamzi Beauty",
+    brandLogoUrl: "https://glamzibeauty.com/favicon.png",
+    brandPrimaryColor: "#e11d48",
+    supportEmail: "support@glamzibeauty.com",
+    supportPhone: "01-000000",
+    appUrl: "https://glamzibeauty.com",
+    year: new Date().getFullYear(),
+    orderNumber: "GLZ-10001",
+    orderLink: "https://glamzibeauty.com/orders/GLZ-10001",
+    trackingLink: "https://glamzibeauty.com/track/GLZ-10001",
+    returnLink: "https://glamzibeauty.com/returns/RTN-1001",
+    sellerOrderLink: "https://seller.glamzibeauty.com/seller/orders/GLZ-10001",
+    sellerSettlementLink: "https://seller.glamzibeauty.com/seller/settlements/2026-01-30",
+    customerName: "Anil",
+    sellerStoreName: "Glamzi Store",
+    paymentMethod: "Cash on Delivery",
+    subtotal: "Rs 1,499",
+    shipping: "Rs 100",
+    discount: "Rs 0",
+    total: "Rs 1,599",
+    segmentSubtotal: "Rs 1,499",
+    segmentShipping: "Rs 100",
+    segmentTotal: "Rs 1,599",
+    shipBy: "2 business days",
+    returnReference: "RTN-1001",
+    expectedResponseWindow: "24-48 hours",
+    decision: "approved",
+    decisionReason: "Eligible for return",
+    refundAmount: "Rs 1,499",
+    pickupDate: "2026-01-31",
+    pickupWindow: "10:00 - 13:00",
+    pickupCarrier: "Glamzi Delivery",
+    sellerSupportEmail: "seller-support@glamzibeauty.com",
+    settlementsEmail: "settlements@glamzibeauty.com",
+    grossSales: "Rs 10,000",
+    returnsTotal: "Rs 500",
+    commissionTotal: "Rs 1,000",
+    shippingTotal: "Rs 300",
+    netSettlement: "Rs 8,500",
+    note: "This is a summary of today’s settlement.",
+    payoutBatch: "BATCH-2026-01-30",
+    payoutAmount: "Rs 8,500",
+    payoutMethod: "Bank Transfer",
+    payoutReference: "TXN-12345",
+    payoutLink: "https://seller.glamzibeauty.com/seller/payouts/TXN-12345",
+    otpCode: "123456",
+    otpExpiry: "10 minutes",
+    resetExpiry: "30 minutes",
+    resetLink: "https://glamzibeauty.com/reset-password",
+    alertTitle: "Order queue backlog",
+    alertMessage: "Order processing is delayed for 15 minutes.",
+    alertContext: "orders.worker",
+    alertLink: "https://admin.glamzibeauty.com",
+    alertId: "ALERT-1001",
+    items: [
+      { name: "Sample Item", qty: 1, price: "Rs 999", lineTotal: "Rs 999", variant: "Default" },
+    ],
+  };
+
   const vars = {};
   allowed.forEach((v) => {
-    vars[v] = v.replace(/_/g, " ");
+    vars[v] = Object.prototype.hasOwnProperty.call(defaults, v) ? defaults[v] : v.replace(/_/g, " ");
   });
   return vars;
 }
