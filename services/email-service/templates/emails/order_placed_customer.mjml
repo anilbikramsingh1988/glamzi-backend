@@ -1,3 +1,90 @@
-<mj-text font-size="16px" font-weight="bold">Order confirmed</mj-text>
-<mj-text>Hi {{customerName}}, your order <strong>{{orderNumber}}</strong> is confirmed.</mj-text>
-<mj-button href="{{orderLink}}" background-color="#ec4899" color="#ffffff">View Order</mj-button>
+<mjml>
+  <mj-head>
+    <mj-title>Order Confirmed</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+      <mj-text font-size="14px" line-height="1.6" color="#111827" />
+      <mj-button background-color="{{brandPrimaryColor}}" color="#ffffff" font-size="14px" font-weight="700" border-radius="10px" padding="12px 18px" />
+    </mj-attributes>
+    <mj-style>
+      .muted { color: #6b7280; }
+      .small { font-size: 12px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 14px; }
+      .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb; }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#f9fafb">
+    <!-- Header -->
+    <mj-section background-color="#ffffff" padding="18px 18px 8px">
+      <mj-column>
+        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Hero -->
+    <mj-section background-color="#ffffff" padding="8px 18px 0px">
+      <mj-column>
+        <mj-text font-size="20px" font-weight="800">Your order is confirmed ??</mj-text>
+        <mj-text class="muted">
+          Hi {{customerName}}, we’ve received your order <span class="pill">{{orderNumber}}</span>.
+          We’ll notify you when it ships.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Order Summary -->
+    <mj-section background-color="#ffffff" padding="12px 18px">
+      <mj-column css-class="card" padding="14px">
+        <mj-text font-weight="700">Order summary</mj-text>
+
+        {{#if items}}
+          {{#each items}}
+            <mj-text>
+              <strong>{{name}}</strong>
+              {{#if variant}}<span class="muted"> • {{variant}}</span>{{/if}}
+              <br/>
+              <span class="muted">Qty:</span> {{qty}}
+              <span class="muted"> • Price:</span> {{price}}
+            </mj-text>
+          {{/each}}
+        {{else}}
+          <mj-text class="muted">Your items will appear here once synced.</mj-text>
+        {{/if}}
+
+        <mj-divider border-color="#e5e7eb" />
+
+        <mj-text>
+          <span class="muted">Subtotal:</span> {{subtotal}}<br/>
+          <span class="muted">Shipping:</span> {{shipping}}<br/>
+          {{#if discount}}<span class="muted">Discount:</span> -{{discount}}<br/>{{/if}}
+          <strong>Total:</strong> {{total}}
+        </mj-text>
+
+        {{#if paymentMethod}}
+          <mj-text class="muted small">Payment method: {{paymentMethod}}</mj-text>
+        {{/if}}
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA -->
+    <mj-section background-color="#ffffff" padding="4px 18px 18px">
+      <mj-column>
+        <mj-button href="{{orderLink}}">View your order</mj-button>
+        <mj-text class="muted small" padding-top="10px">
+          ? FREE DELIVERY ? FREE RETURNS
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#ffffff" padding="12px 18px">
+      <mj-column>
+        <mj-text class="muted small">
+          Need help? Contact us at <strong>{{supportEmail}}</strong>{{#if supportPhone}} or {{supportPhone}}{{/if}}.
+          <br/>© {{year}} {{brandName}}. All rights reserved.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
