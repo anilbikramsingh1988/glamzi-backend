@@ -23,7 +23,7 @@
 
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
-        <mj-text font-size="18px" font-weight="800">We received your return request ✅</mj-text>
+        <mj-text font-size="18px" font-weight="800">Return request for your items</mj-text>
         <mj-text class="muted">
           Return: <span class="pill">{{returnReference}}</span><br/>
           Order: <strong>{{orderNumber}}</strong>
@@ -33,15 +33,9 @@
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column css-class="card" padding="14px">
-        <mj-text font-weight="700">Next steps</mj-text>
-        <mj-text class="muted">
-          We’ll review your request and update you shortly.
-          {{#if expectedResponseWindow}} Typical response time: <strong>{{expectedResponseWindow}}</strong>.{{/if}}
-        </mj-text>
+        <mj-text font-weight="700">Items affected (your store only)</mj-text>
 
         {{#if items}}
-          <mj-divider border-color="#e5e7eb" />
-          <mj-text font-weight="700">Items in this return</mj-text>
           {{#each items}}
             <mj-text>
               <strong>{{name}}</strong>
@@ -49,15 +43,22 @@
               {{#if reason}}<br/><span class="muted">Reason:</span> {{reason}}{{/if}}
             </mj-text>
           {{/each}}
+        {{else}}
+          <mj-text class="muted">Items will appear once synced.</mj-text>
+        {{/if}}
+
+        {{#if sellerActionDeadline}}
+          <mj-divider border-color="#e5e7eb" />
+          <mj-text class="muted">Please respond by: <strong>{{sellerActionDeadline}}</strong></mj-text>
         {{/if}}
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
-        <mj-button href="{{returnLink}}">View return status</mj-button>
+        <mj-button href="{{sellerReturnLink}}">Review in Seller Dashboard</mj-button>
         <mj-text class="muted small" padding-top="10px">
-          Need help? {{supportEmail}}
+          Seller support: {{sellerSupportEmail}}
         </mj-text>
       </mj-column>
     </mj-section>

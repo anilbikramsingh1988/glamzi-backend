@@ -1,4 +1,4 @@
-<mjml>
+﻿<mjml>
   <mj-head>
     <mj-title>Your order has shipped</mj-title>
     <mj-attributes>
@@ -23,7 +23,7 @@
 
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
-        <mj-text font-size="20px" font-weight="800">Your order is on the way ??</mj-text>
+        <mj-text font-size="20px" font-weight="800">Your order is on the way 🚚</mj-text>
         <mj-text class="muted">
           Order <span class="pill">{{orderNumber}}</span> has shipped.
           {{#if trackingNumber}} Tracking: <strong>{{trackingNumber}}</strong>{{/if}}
@@ -43,7 +43,7 @@
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
         <mj-button href="{{trackingLink}}">Track your order</mj-button>
-        <mj-text class="muted small" padding-top="10px">? FREE DELIVERY ? FREE RETURNS</mj-text>
+        <mj-text class="muted small" padding-top="10px">✓ FREE DELIVERY ✓ FREE RETURNS</mj-text>
       </mj-column>
     </mj-section>
 
@@ -51,7 +51,7 @@
       <mj-column>
         <mj-text class="muted small">
           Questions? Email <strong>{{supportEmail}}</strong>.
-          <br/>� {{year}} {{brandName}}.
+          <br/>© {{year}} {{brandName}}.
         </mj-text>
       </mj-column>
     </mj-section>
