@@ -226,6 +226,30 @@ async function buildDailySeries(sellerId) {
 // ===========================
 // CUSTOMER ROUTES
 // ===========================
+router.get("/:sellerId/followers/count", async (req, res) => {
+  try {
+    const sellerId = normalizeId(req.params.sellerId);
+    if (!sellerId || !isValidSellerId(sellerId)) {
+      return ERROR(res, 400, "INVALID_SELLER_ID", "Invalid seller ID");
+    }
+
+    const sellerExists = await ensureSellerExists(sellerId);
+    if (!sellerExists) {
+      return ERROR(res, 404, "SELLER_NOT_FOUND", "Seller not found");
+    }
+
+    const totalFollowers = await getFollowers().countDocuments({
+      sellerId,
+      status: "active",
+    });
+
+    return res.json({ totalFollowers });
+  } catch (err) {
+    console.error("GET /store/:sellerId/followers/count error:", err);
+    return ERROR(res, 500, "COUNT_FAILED", "Failed to load follower count");
+  }
+});
+
 router.post(
   "/:sellerId/follow",
   authMiddleware,
