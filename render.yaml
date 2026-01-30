@@ -1,0 +1,5 @@
+cronJobs:
+  - name: glamzi-followers-rollup
+    env: node
+    schedule: "30 18 * * *"
+    command: "node jobs/rollupStoreFollowersDaily.js"
