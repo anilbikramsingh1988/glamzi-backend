@@ -72,6 +72,7 @@ import customerMessageRoutes from "./routes/customerMessageRoutes.js";
 import sellerMessageRoutes from "./routes/sellerMessageRoutes.js";
 import adminMessagingRoutes from "./routes/adminMessagingRoutes.js";
 import sellerNotificationRoutes from "./routes/sellerNotificationRoutes.js";
+import customerNotificationRoutes from "./routes/customerNotificationRoutes.js";
 import sellerCustomerMessageRoutes from "./routes/sellerCustomerMessageRoutes.js";
 
 // ✅ Admin seller support messaging routes (baseline requirement)
@@ -294,6 +295,7 @@ app.use("/api", adminStorefrontConfigRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin", adminMessagingRoutes);
 app.use("/api/seller", sellerNotificationRoutes);
+app.use("/api/customer", customerNotificationRoutes);
 
 // ✅ Admin coupons (cart coupons, campaigns)
 app.use("/api/admin", adminCouponRoutes);

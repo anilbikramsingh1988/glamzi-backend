@@ -15,6 +15,7 @@ import {
 import { casReturnStatus } from "./_returnHelpers.js";
 
 import { logShippingBookingFailure } from "../utils/shippingLog.js";
+import { notifyCustomer, notifySeller } from "../utils/notify.js";
 
 const router = express.Router();
 const db = client.db(process.env.DB_NAME || "glamzi_ecommerce");
@@ -1004,6 +1005,35 @@ router.patch(
         }
       );
 
+      const orderLabel = fresh.orderNumber || fresh.orderId || "";
+      try {
+        await notifySeller({
+          sellerId: fresh.sellerId,
+          type: "return_approved",
+          title: "Return approved",
+          body: `Return approved for order ${orderLabel}`.trim(),
+          link: "/seller/dashboard/orders/returns",
+          meta: { returnId: String(rid), orderId: String(fresh.orderId || "") },
+        });
+      } catch (notifyErr) {
+        console.error("Seller return approved notification error:", notifyErr);
+      }
+
+      try {
+        await notifyCustomer({
+          customerId: fresh.customerId,
+          orderId: fresh.orderId,
+          orderNumber: orderLabel,
+          type: "return_approved",
+          title: "Return approved",
+          body: `Your return request for order ${orderLabel} was approved.`.trim(),
+          link: "/returns",
+          meta: { returnId: String(rid), orderId: String(fresh.orderId || "") },
+        });
+      } catch (notifyErr) {
+        console.error("Customer return approved notification error:", notifyErr);
+      }
+
       return res.json({ ok: true });
     }
 
@@ -1033,6 +1063,35 @@ router.patch(
           $push: { events: event({ kind: "admin", id: actorId }, "ADMIN_REJECTED", { notes }) },
         }
       );
+
+      const orderLabel = fresh.orderNumber || fresh.orderId || "";
+      try {
+        await notifySeller({
+          sellerId: fresh.sellerId,
+          type: "return_rejected",
+          title: "Return rejected",
+          body: `Return rejected for order ${orderLabel}`.trim(),
+          link: "/seller/dashboard/orders/returns",
+          meta: { returnId: String(rid), orderId: String(fresh.orderId || "") },
+        });
+      } catch (notifyErr) {
+        console.error("Seller return rejected notification error:", notifyErr);
+      }
+
+      try {
+        await notifyCustomer({
+          customerId: fresh.customerId,
+          orderId: fresh.orderId,
+          orderNumber: orderLabel,
+          type: "return_rejected",
+          title: "Return rejected",
+          body: `Your return request for order ${orderLabel} was rejected.`.trim(),
+          link: "/returns",
+          meta: { returnId: String(rid), orderId: String(fresh.orderId || "") },
+        });
+      } catch (notifyErr) {
+        console.error("Customer return rejected notification error:", notifyErr);
+      }
 
       return res.json({ ok: true });
     }

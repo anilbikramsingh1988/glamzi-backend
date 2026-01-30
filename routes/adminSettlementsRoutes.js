@@ -9,6 +9,7 @@ import express from "express";
 import { ObjectId } from "mongodb";
 import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { notifySeller } from "../utils/notify.js";
 
 const router = express.Router();
 
@@ -1274,6 +1275,46 @@ router.patch("/settlements/batches/:id/status", authMiddleware, ensureFinanceAcc
 
       updated = await SettlementBatches.findOne({ _id: batchId }, { session });
     });
+
+    // Notify sellers about payout batch status updates
+    try {
+      const invoiceIds = Array.isArray(updated?.invoiceIds) ? updated.invoiceIds : [];
+      if (invoiceIds.length) {
+        const invoices = await Invoices.find({ _id: { $in: invoiceIds } })
+          .project({ sellerId: 1 })
+          .toArray();
+        const sellerIds = Array.from(
+          new Set(invoices.map((inv) => String(inv?.sellerId || "")).filter(Boolean))
+        );
+
+        const statusLabel = String(updated?.status || "").toLowerCase();
+        const title =
+          statusLabel === "paid"
+            ? "Settlement paid"
+            : statusLabel === "failed"
+            ? "Settlement failed"
+            : "Settlement updated";
+        const body =
+          statusLabel === "paid"
+            ? `Your settlement batch has been marked paid.`
+            : statusLabel === "failed"
+            ? `Your settlement batch failed. Please contact support.`
+            : `Your settlement batch status is now ${statusLabel}.`;
+
+        for (const sid of sellerIds) {
+          await notifySeller({
+            sellerId: sid,
+            type: "settlement_update",
+            title,
+            body,
+            link: "/seller/dashboard/orders/commissions",
+            meta: { batchId: String(updated?._id || ""), status: statusLabel },
+          });
+        }
+      }
+    } catch (notifyErr) {
+      console.error("Settlement notification error:", notifyErr);
+    }
 
     return res.json({ batch: updated });
   } catch (err) {

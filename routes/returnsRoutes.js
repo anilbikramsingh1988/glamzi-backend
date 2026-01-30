@@ -4,6 +4,7 @@ import express from "express";
 import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { sendAdminPushNotification } from "../utils/adminPush.js";
+import { notifyCustomer, notifySeller } from "../utils/notify.js";
 
 import {
   RETURN_STATUS,
@@ -381,6 +382,40 @@ router.post("/", authMiddleware, async (req, res) => {
       body: `New return request for order ${order?.orderNumber || order?._id || ""}`,
       url: "/orders/returns",
     });
+
+    // Seller + Customer notifications
+    const orderLabel = order?.orderNumber || order?._id || "";
+    const sellerIdsToNotify = created.map((c) => String(c?.sellerId || "")).filter(Boolean);
+
+    for (const sid of sellerIdsToNotify) {
+      try {
+        await notifySeller({
+          sellerId: sid,
+          type: "return_requested",
+          title: "Return request received",
+          body: `Return requested for order ${orderLabel}`.trim(),
+          link: "/seller/dashboard/orders/returns",
+          meta: { orderId: String(orderId), orderNumber: orderLabel },
+        });
+      } catch (notifyErr) {
+        console.error("Seller return notification error:", notifyErr);
+      }
+    }
+
+    try {
+      await notifyCustomer({
+        customerId,
+        orderId,
+        orderNumber: orderLabel,
+        type: "return_requested",
+        title: "Return request submitted",
+        body: `Your return request for order ${orderLabel} is under review.`.trim(),
+        link: "/returns",
+        meta: { orderId: String(orderId), orderNumber: orderLabel },
+      });
+    } catch (notifyErr) {
+      console.error("Customer return notification error:", notifyErr);
+    }
 
     return res.status(201).json({ message: "Return request created.", created });
   } catch (err) {

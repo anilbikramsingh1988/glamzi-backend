@@ -11,6 +11,7 @@ import { applyDiscounts } from "../utils/discountEngine.js";
 import multer from "multer";
 import { bookShipmentFactory, bookReturnShipment } from "../utils/shippingBridge.js";
 import { sendSellerPushNotification } from "../utils/sellerPush.js";
+import { notifyCustomer } from "../utils/notify.js";
 
 const router = express.Router();
 
@@ -2463,6 +2464,22 @@ router.post("/", authMiddleware, async (req, res) => {
           console.error("Seller order notification error:", notifyErr);
         }
       }
+    }
+
+    // Customer in-app notification (order placed)
+    try {
+      await notifyCustomer({
+        customerId: orderDocOut.userId,
+        orderId: insertedId,
+        orderNumber: orderDocOut.orderNumber || null,
+        type: "order_placed",
+        title: "Order placed successfully",
+        body: `Your order ${orderDocOut.orderNumber || ""} has been placed.`.trim(),
+        link: "/orders",
+        meta: { orderId: String(insertedId) },
+      });
+    } catch (notifyErr) {
+      console.error("Customer order notification error:", notifyErr);
     }
 
     // Commit flash reservations (move reserved -> sold)
