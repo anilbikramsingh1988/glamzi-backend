@@ -1,3 +1,84 @@
-<mj-text font-size="16px" font-weight="bold">New order received</mj-text>
-<mj-text>Hi {{sellerName}}, you have a new order <strong>{{orderNumber}}</strong>.</mj-text>
-<mj-button href="{{sellerLink}}" background-color="#ec4899" color="#ffffff">View Orders</mj-button>
+<mjml>
+  <mj-head>
+    <mj-title>New order received</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+      <mj-text font-size="14px" line-height="1.6" color="#111827" />
+      <mj-button background-color="{{brandPrimaryColor}}" color="#ffffff" font-size="14px" font-weight="700" border-radius="10px" padding="12px 18px" />
+    </mj-attributes>
+    <mj-style>
+      .muted { color: #6b7280; }
+      .small { font-size: 12px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 14px; }
+      .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb; }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#f9fafb">
+    <mj-section background-color="#ffffff" padding="18px 18px 8px">
+      <mj-column>
+        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="8px 18px 0px">
+      <mj-column>
+        <mj-text font-size="18px" font-weight="800">You have a new order ??</mj-text>
+        <mj-text class="muted">
+          Store: <strong>{{sellerStoreName}}</strong><br/>
+          Order: <span class="pill">{{orderNumber}}</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="12px 18px">
+      <mj-column css-class="card" padding="14px">
+        <mj-text font-weight="700">Your items to fulfill</mj-text>
+
+        {{#if items}}
+          {{#each items}}
+            <mj-text>
+              <strong>{{name}}</strong>
+              {{#if variant}}<span class="muted"> • {{variant}}</span>{{/if}}
+              <br/>
+              <span class="muted">Qty:</span> {{qty}}
+              <span class="muted"> • Item total:</span> {{lineTotal}}
+            </mj-text>
+          {{/each}}
+        {{else}}
+          <mj-text class="muted">Items will appear once synced.</mj-text>
+        {{/if}}
+
+        <mj-divider border-color="#e5e7eb" />
+
+        <mj-text>
+          <span class="muted">Segment subtotal:</span> {{segmentSubtotal}}<br/>
+          {{#if segmentShipping}}<span class="muted">Shipping:</span> {{segmentShipping}}<br/>{{/if}}
+          <strong>Segment total:</strong> {{segmentTotal}}
+        </mj-text>
+
+        {{#if shipBy}}
+          <mj-text class="muted small">Ship by: {{shipBy}}</mj-text>
+        {{/if}}
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="4px 18px 18px">
+      <mj-column>
+        <mj-button href="{{sellerOrderLink}}">Open in Seller Dashboard</mj-button>
+        <mj-text class="muted small" padding-top="10px">
+          Fulfill quickly to improve your store rating and visibility.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="12px 18px">
+      <mj-column>
+        <mj-text class="muted small">
+          Seller support: <strong>{{sellerSupportEmail}}</strong>
+          <br/>© {{year}} {{brandName}}.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

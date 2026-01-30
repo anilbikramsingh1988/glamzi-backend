@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>Return request received</mj-title>
+    <mj-title>Your order has shipped</mj-title>
     <mj-attributes>
       <mj-all font-family="Inter, Arial, sans-serif" />
       <mj-text font-size="14px" line-height="1.6" color="#111827" />
@@ -23,48 +23,36 @@
 
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
-        <mj-text font-size="18px" font-weight="800">We received your return request ?</mj-text>
+        <mj-text font-size="20px" font-weight="800">Your order is on the way ??</mj-text>
         <mj-text class="muted">
-          Return: <span class="pill">{{returnReference}}</span><br/>
-          Order: <strong>{{orderNumber}}</strong>
+          Order <span class="pill">{{orderNumber}}</span> has shipped.
+          {{#if trackingNumber}} Tracking: <strong>{{trackingNumber}}</strong>{{/if}}
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column css-class="card" padding="14px">
-        <mj-text font-weight="700">Next steps</mj-text>
-        <mj-text class="muted">
-          We’ll review your request and update you shortly.
-          {{#if expectedResponseWindow}} Typical response time: <strong>{{expectedResponseWindow}}</strong>.{{/if}}
-        </mj-text>
-
-        {{#if items}}
-          <mj-divider border-color="#e5e7eb" />
-          <mj-text font-weight="700">Items in this return</mj-text>
-          {{#each items}}
-            <mj-text>
-              <strong>{{name}}</strong>
-              <span class="muted"> • Qty:</span> {{qty}}
-              {{#if reason}}<br/><span class="muted">Reason:</span> {{reason}}{{/if}}
-            </mj-text>
-          {{/each}}
-        {{/if}}
+        <mj-text font-weight="700">Delivery details</mj-text>
+        {{#if courier}}<mj-text><span class="muted">Courier:</span> {{courier}}</mj-text>{{/if}}
+        {{#if eta}}<mj-text><span class="muted">Estimated delivery:</span> {{eta}}</mj-text>{{/if}}
+        <mj-text class="muted small">You can track your shipment anytime using the button below.</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
-        <mj-button href="{{returnLink}}">View return status</mj-button>
-        <mj-text class="muted small" padding-top="10px">
-          Need help? {{supportEmail}}
-        </mj-text>
+        <mj-button href="{{trackingLink}}">Track your order</mj-button>
+        <mj-text class="muted small" padding-top="10px">? FREE DELIVERY ? FREE RETURNS</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text class="muted small">© {{year}} {{brandName}}.</mj-text>
+        <mj-text class="muted small">
+          Questions? Email <strong>{{supportEmail}}</strong>.
+          <br/>© {{year}} {{brandName}}.
+        </mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
