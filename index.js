@@ -123,6 +123,7 @@ import wishlistRoutes from "./routes/wishlistRoutes.js";
 // Push notification routes
 import pushNotificationRoutes from "./routes/pushNotificationRoutes.js";
 import adminNotificationRoutes from "./routes/adminNotificationRoutes.js";
+import storeFollowRoutes from "./routes/storeFollowRoutes.js";
 import subscriberRoutes from "./routes/subscriberRoutes.js";
 
 // =========================
@@ -376,6 +377,7 @@ app.use("/api/wishlist", wishlistRoutes);
 // =========================
 app.use("/api/notifications", pushNotificationRoutes);
 app.use("/api/admin/notifications", adminNotificationRoutes);
+app.use("/api/store", storeFollowRoutes);
 
 // =====================================================
 // Root + Health
