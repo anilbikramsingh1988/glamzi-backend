@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 import { connectDb } from "../db.js";
-import { renderEmail } from "../services/templates/templateEngine.js";
+import { renderTemplateByKey } from "../services/templateRenderer.js";
 import { sendEmail } from "../services/providers/sendgrid.js";
+import { isQuietHoursNow, getNextQuietHoursEnd } from "../services/routing/emailRouter.js";
 
 dotenv.config();
 
@@ -111,9 +112,15 @@ async function getSettings(db) {
     (await db.collection("emailSettings").findOne({ _id: "default" })) || {
       enabled: true,
       enabledByType: {},
+      allowedTemplatesByCategory: { transactional: true, operational: true, marketing: true },
+      disabledTemplates: [],
       limits: { maxAttempts: 10 },
     }
   );
+}
+
+function isPermanentTemplateError(code) {
+  return ["NOT_FOUND", "NO_PUBLISHED", "INVALID_VARIABLES"].includes(code);
 }
 
 async function processOne(db, lockId) {
@@ -135,9 +142,49 @@ async function processOne(db, lockId) {
     }
 
     let html = job.html;
+    let subject = job.subject;
+    let templateMeta = null;
+
     if (!html && job.templateId) {
-      const rendered = renderEmail({ templateId: job.templateId, variables: job.variables || {} });
-      html = rendered.html;
+      if (settings.disabledTemplates?.includes(job.templateId)) {
+        await db.collection("emailJobs").updateOne(
+          { _id: job._id },
+          { $set: { status: "cancelled", updatedAt: new Date(), lastError: { code: "TEMPLATE_DISABLED", message: "Template disabled" } } }
+        );
+        return true;
+      }
+
+      const rendered = await renderTemplateByKey({ templateKey: job.templateId, variables: job.variables || {} });
+      if (!rendered.ok) {
+        if (isPermanentTemplateError(rendered.error?.code)) {
+          await markDead(db, job, rendered.error);
+          return true;
+        }
+        throw new Error(rendered.error?.message || "Template render failed");
+      }
+
+      templateMeta = rendered;
+      if (templateMeta.template?.category) {
+        const allowed = settings.allowedTemplatesByCategory?.[templateMeta.template.category];
+        if (allowed === false) {
+          await db.collection("emailJobs").updateOne(
+            { _id: job._id },
+            { $set: { status: "cancelled", updatedAt: new Date(), lastError: { code: "CATEGORY_DISABLED", message: "Template category disabled" } } }
+          );
+          return true;
+        }
+        if (templateMeta.template.category === "marketing" && isQuietHoursNow(settings)) {
+          const nextAttemptAt = getNextQuietHoursEnd(settings);
+          await db.collection("emailJobs").updateOne(
+            { _id: job._id },
+            { $set: { status: "queued", nextAttemptAt, lockedAt: null, lockId: null, updatedAt: new Date() } }
+          );
+          return true;
+        }
+      }
+
+      html = templateMeta.html;
+      subject = subject || templateMeta.subject || job.subject;
     }
 
     const result = await sendEmail({
@@ -146,7 +193,7 @@ async function processOne(db, lockId) {
       to: job.to,
       cc: job.cc,
       bcc: job.bcc,
-      subject: job.subject,
+      subject,
       html,
       text: job.text,
       attachments: job.attachments,
@@ -155,6 +202,16 @@ async function processOne(db, lockId) {
     });
 
     await markSent(db, job, result.messageId);
+    if (templateMeta?.version && job.templateId) {
+      await db.collection("emailTemplateUsageLog").insertOne({
+        jobId: job._id,
+        templateKey: job.templateId,
+        version: templateMeta.version?.version,
+        status: "sent",
+        sentAt: new Date(),
+        createdAt: new Date(),
+      });
+    }
     console.log(JSON.stringify({
       level: "info",
       msg: "Email sent",

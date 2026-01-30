@@ -12,6 +12,15 @@ async function run() {
 
   await db.collection("emailDeadLetters").createIndex({ createdAt: -1 });
 
+  await db.collection("emailTemplates").createIndex({ key: 1 }, { unique: true });
+  await db.collection("emailTemplateVersions").createIndex(
+    { templateKey: 1, version: 1 },
+    { unique: true }
+  );
+  await db.collection("emailTemplateVersions").createIndex({ templateKey: 1, status: 1, version: -1 });
+  await db.collection("emailTemplateUsageLog").createIndex({ templateKey: 1, version: -1 });
+  await db.collection("emailTemplateUsageLog").createIndex({ jobId: 1 });
+
   console.log("Indexes created");
   process.exit(0);
 }

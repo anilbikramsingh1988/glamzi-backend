@@ -50,6 +50,19 @@ curl -X POST http://localhost:8088/api/email/enqueue \
 - `GET /health`
 - `GET /ready`
 
+## Admin template management
+
+All template endpoints require the same `x-internal-token` header.
+
+- `GET /api/admin/templates`
+- `POST /api/admin/templates`
+- `GET /api/admin/templates/:templateKey/versions`
+- `POST /api/admin/templates/:templateKey/versions`
+- `GET /api/admin/templates/:templateKey/versions/:version/preview`
+- `POST /api/admin/templates/:templateKey/versions/:version/test-send`
+- `POST /api/admin/templates/:templateKey/versions/:version/publish`
+- `POST /api/admin/templates/:templateKey/versions/:version/rollback`
+
 ## Notes
 
 - All endpoints require `x-internal-token`.
