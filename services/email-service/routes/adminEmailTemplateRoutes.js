@@ -56,6 +56,16 @@ function buildSampleVariables(allowed = []) {
   return vars;
 }
 
+function parseVarsParam(value) {
+  if (!value) return {};
+  try {
+    const json = Buffer.from(String(value), "base64").toString("utf-8");
+    return JSON.parse(json);
+  } catch (err) {
+    return null;
+  }
+}
+
 async function buildMjmlFromVersion(template, version, variables) {
   if (template.isBlockEditable) {
     return mergeTransactionalBlocks({ contentBlocks: version.contentBlocks || {}, variables: { ...variables, previewText: version.previewText || "" } });
@@ -180,12 +190,20 @@ router.get("/:templateKey/versions/:version/preview", requireAdminOrInternal, as
 
   if (!template || !ver) return res.status(404).json({ ok: false, error: { code: "NOT_FOUND", message: "Template or version not found" } });
 
-  const variables = buildSampleVariables(template.allowedVariables || []);
+  const parsedVars = parseVarsParam(req.query.vars);
+  if (parsedVars === null) {
+    return res.status(400).json({ ok: false, error: { code: "VALIDATION", message: "Invalid vars payload" } });
+  }
+
+  const variables = parsedVars && Object.keys(parsedVars).length
+    ? parsedVars
+    : buildSampleVariables(template.allowedVariables || []);
+
   const mjmlRaw = await buildMjmlFromVersion(template, ver, variables);
   const compiled = Handlebars.compile(mjmlRaw)(variables);
-  const { html } = mjml2html(compiled, { validationLevel: "soft" });
+  const { html, errors } = mjml2html(compiled, { validationLevel: "soft" });
 
-  res.json({ ok: true, data: { html } });
+  res.json({ ok: true, data: { html, errors: errors || [] } });
 });
 
 router.post("/:templateKey/versions/:version/test-send", requireAdminOrInternal, async (req, res) => {
