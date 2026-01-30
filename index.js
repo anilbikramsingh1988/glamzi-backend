@@ -203,6 +203,11 @@ const corsOptions = {
     // Allow non-browser clients (mobile app, Postman, curl) with no Origin header
     if (!origin) return callback(null, true);
 
+    // Allow any glamzibeauty.com subdomain explicitly (admin/app)
+    if (origin && origin.includes("glamzibeauty.com")) {
+      return callback(null, true);
+    }
+
     // Allow glamzi/glamzibeauty custom domains
     if (
       origin.endsWith(".glamzibeauty.com") ||
@@ -224,7 +229,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cache-Control", "X-Internal-Token", "X-Requested-With", "Accept"],
 };
 
 app.use(cors(corsOptions));
