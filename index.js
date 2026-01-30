@@ -189,6 +189,7 @@ const allowedOrigins = [
   // Production storefront + API domains
   "https://glamzibeauty.com",
   "http://glamzibeauty.com",
+  "https://admin.glamzibeauty.com",
   "https://api.glamzibeauty.com",
   "http://api.glamzibeauty.com",
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
