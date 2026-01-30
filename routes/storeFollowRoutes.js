@@ -53,51 +53,69 @@ const getMeta = (req, source) => ({
 });
 
 async function rateLimitFollow(customerId, limit = 30) {
-  const now = new Date();
-  const windowKey = Math.floor(Date.now() / 60000);
-  const key = `${customerId}:${windowKey}`;
+  try {
+    const now = new Date();
+    const windowKey = Math.floor(Date.now() / 60000);
+    const key = `${customerId}:${windowKey}`;
 
-  const res = await getRateLimits().findOneAndUpdate(
-    { key },
-    { $inc: { count: 1 }, $setOnInsert: { key, count: 0, createdAt: now } },
-    { upsert: true, returnDocument: "after" }
-  );
+    const res = await getRateLimits().findOneAndUpdate(
+      { key },
+      { $inc: { count: 1 }, $setOnInsert: { key, count: 0, createdAt: now } },
+      { upsert: true, returnDocument: "after" }
+    );
 
-  return (res?.value?.count || 0) <= limit;
+    return (res?.value?.count || 0) <= limit;
+  } catch (err) {
+    console.error("rateLimitFollow failed, allowing request:", err);
+    return true;
+  }
 }
 
 async function recordEvent({ sellerId, customerId, type, source, meta }) {
-  const at = new Date();
-  await getEvents().insertOne({
-    sellerId: String(sellerId),
-    customerId: String(customerId),
-    type,
-    source,
-    meta,
-    at,
-    createdAt: at,
-  });
+  try {
+    const at = new Date();
+    await getEvents().insertOne({
+      sellerId: String(sellerId),
+      customerId: String(customerId),
+      type,
+      source,
+      meta,
+      at,
+      createdAt: at,
+    });
+  } catch (err) {
+    console.error("recordEvent failed:", err);
+  }
 }
 
 async function ensureSellerExists(sellerId) {
-  const idStr = normalizeId(sellerId);
-  if (!idStr) return false;
+  try {
+    const idStr = normalizeId(sellerId);
+    if (!idStr) return false;
 
-  const sellerOid = ObjectId.isValid(idStr) ? new ObjectId(idStr) : null;
-  const sellers = getSellers();
-  const users = getUsers();
+    const sellerOid = ObjectId.isValid(idStr) ? new ObjectId(idStr) : null;
+    const sellers = getSellers();
+    const users = getUsers();
 
-  const sellerDoc =
-    (await sellers.findOne(
-      sellerOid ? { _id: sellerOid } : { sellerId: idStr },
-      { projection: { _id: 1 } }
-    )) ||
-    (await users.findOne(
-      sellerOid ? { _id: sellerOid, role: "seller" } : { sellerId: idStr, role: "seller" },
-      { projection: { _id: 1 } }
-    ));
+    const sellerDoc =
+      (await sellers.findOne(
+        sellerOid
+          ? { $or: [{ _id: sellerOid }, { sellerId: idStr }, { userId: idStr }] }
+          : { $or: [{ sellerId: idStr }, { userId: idStr }] },
+        { projection: { _id: 1 } }
+      )) ||
+      (await users.findOne(
+        sellerOid
+          ? { $or: [{ _id: sellerOid }, { sellerId: idStr }, { userId: idStr }], role: "seller" }
+          : { $or: [{ sellerId: idStr }, { userId: idStr }], role: "seller" },
+        { projection: { _id: 1 } }
+      ));
 
-  return Boolean(sellerDoc);
+    return Boolean(sellerDoc);
+  } catch (err) {
+    console.error("ensureSellerExists failed:", err);
+    return false;
+  }
 }
 
 function getDateKeyRange(days = 30) {
