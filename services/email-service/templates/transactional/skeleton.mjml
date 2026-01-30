@@ -1,0 +1,24 @@
+<mjml>
+  <mj-body background-color="#f8fafc">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-image width="140px" src="{{brandLogoUrl}}" alt="Glamzi" />
+      </mj-column>
+    </mj-section>
+    {{#if previewText}}
+    <mj-preview>{{previewText}}</mj-preview>
+    {{/if}}
+    <mj-section background-color="#ffffff" padding="10px 20px">
+      <mj-column>
+        <mj-text font-size="16px" font-weight="bold">{{headerText}}</mj-text>
+        <mj-text>{{bodyText}}</mj-text>
+        {{#if ctaLabel}}
+        <mj-button href="{{ctaUrl}}" background-color="#ec4899" color="#ffffff">{{ctaLabel}}</mj-button>
+        {{/if}}
+        {{#if footerText}}
+        <mj-text font-size="12px" color="#6b7280">{{footerText}}</mj-text>
+        {{/if}}
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

@@ -127,6 +127,7 @@ import adminNotificationRoutes from "./routes/adminNotificationRoutes.js";
 import adminOutboxRoutes from "./routes/adminOutboxRoutes.js";
 import storeFollowRoutes from "./routes/storeFollowRoutes.js";
 import subscriberRoutes from "./routes/subscriberRoutes.js";
+import emailServiceRoutes from "./services/email-service/routes/emailRoutes.js";
 
 // =========================
 // DISCOUNTS / COUPONS
@@ -382,6 +383,7 @@ app.use("/api/notifications", pushNotificationRoutes);
 app.use("/api/admin/notifications", adminNotificationRoutes);
 app.use("/api/admin", adminOutboxRoutes);
 app.use("/api/store", storeFollowRoutes);
+app.use("/api/email", emailServiceRoutes);
 
 // =====================================================
 // Root + Health

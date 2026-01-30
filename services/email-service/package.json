@@ -1,0 +1,24 @@
+{
+  "name": "glamzi-email-service",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js",
+    "start": "node index.js",
+    "worker": "node workers/emailWorker.js",
+    "worker:once": "node workers/emailWorker.js --once",
+    "ensure-indexes": "node models/indexes.js",
+    "test": "node tests/router.test.mjs && node tests/idempotency.test.mjs && node tests/template.test.mjs"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "handlebars": "^4.7.8",
+    "mjml": "^4.15.3",
+    "mongodb": "^6.21.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  }
+}
