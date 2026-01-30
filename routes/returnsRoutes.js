@@ -5,6 +5,7 @@ import { client } from "../dbConfig.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { sendAdminPushNotification } from "../utils/adminPush.js";
 import { enqueueNotification } from "../utils/outbox.js";
+import { emitDomainEvent } from "../services/events/emitDomainEvent.js";
 
 import {
   RETURN_STATUS,
@@ -415,6 +416,39 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     } catch (notifyErr) {
       console.error("Customer return notification error:", notifyErr);
+    }
+
+    try {
+      // Customer event
+      await emitDomainEvent({
+        type: "return.created",
+        actor: { role: "customer", id: String(customerId || "") },
+        refs: {
+          returnId: String(created?.[0]?.returnId || ""),
+          orderId: String(orderId),
+          customerId: String(customerId || ""),
+        },
+        payload: { orderNumber: orderLabel },
+        dedupeKey: `return.created:${String(created?.[0]?.returnId || "")}`,
+      });
+
+      // Seller events
+      for (const sid of sellerIdsToNotify) {
+        await emitDomainEvent({
+          type: "return.created.seller",
+          actor: { role: "system" },
+          refs: {
+            returnId: String(created?.[0]?.returnId || ""),
+            orderId: String(orderId),
+            sellerId: String(sid),
+            customerId: String(customerId || ""),
+          },
+          payload: { orderNumber: orderLabel },
+          dedupeKey: `return.created.seller:${String(created?.[0]?.returnId || "")}:${sid}`,
+        });
+      }
+    } catch (evtErr) {
+      console.error("emitDomainEvent(return.created) failed:", evtErr);
     }
 
     return res.status(201).json({ message: "Return request created.", created });

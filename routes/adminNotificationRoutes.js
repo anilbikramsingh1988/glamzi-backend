@@ -17,6 +17,9 @@ const Discounts = db.collection("discounts");
 const Products = db.collection("products");
 const Returns = db.collection("returns");
 const Users = db.collection("users");
+const DomainEvents = db.collection("domainEvents");
+const NotificationDeliveries = db.collection("notificationDeliveries");
+const NotificationSettings = db.collection("notificationSettings");
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
@@ -44,6 +47,36 @@ async function sendExpoPushNotification(tokens, title, body, data = {}) {
     console.error("Error sending push notification:", error);
     throw error;
   }
+}
+
+function parseIntSafe(value, fallback = 0) {
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function parseDate(value, endOfDay = false) {
+  if (!value) return null;
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return null;
+  if (endOfDay) {
+    dt.setHours(23, 59, 59, 999);
+  } else {
+    dt.setHours(0, 0, 0, 0);
+  }
+  return dt;
+}
+
+async function getNotificationSettings() {
+  return (
+    (await NotificationSettings.findOne({ _id: "default" })) || {
+      _id: "default",
+      emailEnabledByType: {},
+      sellerEmailsEnabled: true,
+      customerEmailsEnabled: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  );
 }
 
 router.get("/campaigns", authMiddleware, isStaffMiddleware, async (req, res) => {
@@ -75,6 +108,180 @@ router.get("/campaigns", authMiddleware, isStaffMiddleware, async (req, res) => 
   } catch (error) {
     console.error("Error fetching campaigns:", error);
     res.status(500).json({ message: "Failed to fetch campaigns" });
+  }
+});
+
+// ------------------------------------------------------------------
+// Domain events & deliveries inspection (admin only)
+// ------------------------------------------------------------------
+router.get("/events", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const page = Math.max(parseIntSafe(req.query.page, 1), 1);
+    const limit = Math.min(Math.max(parseIntSafe(req.query.limit, 20), 1), 100);
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.type) filter.type = String(req.query.type);
+    if (req.query.status) filter.status = String(req.query.status);
+    if (req.query.sellerId) filter["refs.sellerId"] = String(req.query.sellerId);
+    if (req.query.customerId) filter["refs.customerId"] = String(req.query.customerId);
+    if (req.query.orderId) filter["refs.orderId"] = String(req.query.orderId);
+
+    const from = parseDate(req.query.from);
+    const to = parseDate(req.query.to, true);
+    if (from || to) {
+      filter.at = {};
+      if (from) filter.at.$gte = from;
+      if (to) filter.at.$lte = to;
+    }
+
+    const [items, total] = await Promise.all([
+      DomainEvents.find(filter)
+        .project({
+          type: 1,
+          status: 1,
+          at: 1,
+          refs: 1,
+          dedupeKey: 1,
+          attempts: 1,
+          nextAttemptAt: 1,
+          processedAt: 1,
+          failReason: 1,
+        })
+        .sort({ at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      DomainEvents.countDocuments(filter),
+    ]);
+
+    res.json({
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error("Error fetching domain events:", error);
+    res.status(500).json({ message: "Failed to fetch events" });
+  }
+});
+
+router.get("/deliveries", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const page = Math.max(parseIntSafe(req.query.page, 1), 1);
+    const limit = Math.min(Math.max(parseIntSafe(req.query.limit, 20), 1), 100);
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.status) filter.status = String(req.query.status);
+    if (req.query.to) filter.to = String(req.query.to);
+    if (req.query.templateId) filter.templateId = String(req.query.templateId);
+
+    const from = parseDate(req.query.from);
+    const to = parseDate(req.query.to, true);
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = from;
+      if (to) filter.createdAt.$lte = to;
+    }
+
+    const [items, total] = await Promise.all([
+      NotificationDeliveries.find(filter)
+        .project({
+          to: 1,
+          templateId: 1,
+          status: 1,
+          provider: 1,
+          providerMessageId: 1,
+          dedupeKey: 1,
+          eventId: 1,
+          attempts: 1,
+          lastError: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      NotificationDeliveries.countDocuments(filter),
+    ]);
+
+    res.json({
+      items,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error("Error fetching deliveries:", error);
+    res.status(500).json({ message: "Failed to fetch deliveries" });
+  }
+});
+
+router.post("/events/:id/retry", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const _id = new ObjectId(id);
+    const now = new Date();
+
+    const result = await DomainEvents.updateOne(
+      { _id },
+      {
+        $set: {
+          status: "pending",
+          nextAttemptAt: now,
+          updatedAt: now,
+          failReason: null,
+          lockedAt: null,
+          lockId: null,
+        },
+      }
+    );
+
+    if (!result.matchedCount) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.json({ message: "Event scheduled for retry" });
+  } catch (error) {
+    console.error("Error retrying event:", error);
+    res.status(500).json({ message: "Failed to retry event" });
+  }
+});
+
+router.get("/settings", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const settings = await getNotificationSettings();
+    res.json({ settings });
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+    res.status(500).json({ message: "Failed to fetch settings" });
+  }
+});
+
+router.put("/settings", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const now = new Date();
+    const existing = await getNotificationSettings();
+    const next = {
+      _id: "default",
+      emailEnabledByType: body.emailEnabledByType || existing.emailEnabledByType || {},
+      sellerEmailsEnabled:
+        typeof body.sellerEmailsEnabled === "boolean"
+          ? body.sellerEmailsEnabled
+          : existing.sellerEmailsEnabled,
+      customerEmailsEnabled:
+        typeof body.customerEmailsEnabled === "boolean"
+          ? body.customerEmailsEnabled
+          : existing.customerEmailsEnabled,
+      createdAt: existing.createdAt || now,
+      updatedAt: now,
+    };
+
+    await NotificationSettings.updateOne({ _id: "default" }, { $set: next }, { upsert: true });
+    res.json({ settings: next });
+  } catch (error) {
+    console.error("Error updating settings:", error);
+    res.status(500).json({ message: "Failed to update settings" });
   }
 });
 

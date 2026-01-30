@@ -8,6 +8,7 @@ import { postTransactionGroup } from "../services/finance/postTransactionGroup.j
 import { authMiddleware, isActiveMiddleware } from "../middlewares/authMiddleware.js";
 import { bookShipmentFactory, bookReturnShipment } from "../utils/shippingBridge.js";
 import { enqueueNotification } from "../utils/outbox.js";
+import { emitDomainEvent } from "../services/events/emitDomainEvent.js";
 import {
   RETURN_STATUS,
   canTransitionReturnStatus,
@@ -911,7 +912,7 @@ async function writeAudit({ orderId, orderNumber, from, to, actor, note }) {
   }
 }
 
-async function notifyCustomer(order, nextStatus) {
+async function notifyCustomer(order, nextStatus, actorId = "admin") {
   try {
     const uid = toObjectId(order?.userId);
     if (!uid) return;
@@ -934,6 +935,14 @@ async function notifyCustomer(order, nextStatus) {
       body: `Order status updated to ${st}.`,
       link: "/orders",
       meta: { orderId: String(order._id || ""), status: st },
+    });
+
+    await emitDomainEvent({
+      type: "order.status_changed",
+      actor: { role: "admin", id: String(actorId || "admin") },
+      refs: { orderId: String(order._id || ""), customerId: String(uid) },
+      payload: { orderNumber: order.orderNumber || "", status: st },
+      dedupeKey: `order.status_changed:${String(order._id || "")}:${st}`,
     });
   } catch (e) {
     console.warn("⚠️ customerNotifications insert failed:", e?.message || e);
@@ -1438,7 +1447,11 @@ async function applyAdminStatusUpdate({ req, res, orderId, nextStatusRaw, noteRa
       actor,
       note,
     }),
-    notifyCustomer(updated, nextStatus),
+    notifyCustomer(
+      updated,
+      nextStatus,
+      actor?.id || req.user?._id || req.user?.id || "admin"
+    ),
   ]).catch(() => {});
 
   return res.json({ success: true, order: updated });

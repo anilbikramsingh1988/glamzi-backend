@@ -16,6 +16,7 @@ import { casReturnStatus } from "./_returnHelpers.js";
 
 import { logShippingBookingFailure } from "../utils/shippingLog.js";
 import { enqueueNotification } from "../utils/outbox.js";
+import { emitDomainEvent } from "../services/events/emitDomainEvent.js";
 
 const router = express.Router();
 const db = client.db(process.env.DB_NAME || "glamzi_ecommerce");
@@ -1034,6 +1035,26 @@ router.patch(
         console.error("Customer return approved notification error:", notifyErr);
       }
 
+      try {
+        await emitDomainEvent({
+          type: "return.decision_made",
+          actor: { role: "admin", id: actorId },
+          refs: {
+            returnId: String(rid),
+            orderId: String(fresh.orderId || ""),
+            sellerId: String(fresh.sellerId || ""),
+            customerId: String(fresh.customerId || ""),
+          },
+          payload: {
+            decision: "approved",
+            orderNumber: orderLabel,
+          },
+          dedupeKey: `return.decision_made:${String(rid)}:approved`,
+        });
+      } catch (evtErr) {
+        console.error("emitDomainEvent(return.decision_made approved) failed:", evtErr);
+      }
+
       return res.json({ ok: true });
     }
 
@@ -1091,6 +1112,26 @@ router.patch(
         });
       } catch (notifyErr) {
         console.error("Customer return rejected notification error:", notifyErr);
+      }
+
+      try {
+        await emitDomainEvent({
+          type: "return.decision_made",
+          actor: { role: "admin", id: actorId },
+          refs: {
+            returnId: String(rid),
+            orderId: String(fresh.orderId || ""),
+            sellerId: String(fresh.sellerId || ""),
+            customerId: String(fresh.customerId || ""),
+          },
+          payload: {
+            decision: "rejected",
+            orderNumber: orderLabel,
+          },
+          dedupeKey: `return.decision_made:${String(rid)}:rejected`,
+        });
+      } catch (evtErr) {
+        console.error("emitDomainEvent(return.decision_made rejected) failed:", evtErr);
       }
 
       return res.json({ ok: true });
@@ -1338,6 +1379,25 @@ router.post(
       { _id: rid, status: ret0.status },
       { $set: pickupSet, $push: { events: { $each: eventEntries } } }
     );
+
+    try {
+      await emitDomainEvent({
+        type: "return.pickup_scheduled",
+        actor: { role: "admin", id: actorId },
+        refs: {
+          returnId: String(rid),
+          orderId: String(ret0.orderId || ""),
+          sellerId: String(ret0.sellerId || ""),
+          customerId: String(ret0.customerId || ""),
+        },
+        payload: {
+          trackingNumber: trackingNumber || null,
+        },
+        dedupeKey: `return.pickup_scheduled:${String(rid)}:${trackingNumber || "na"}`,
+      });
+    } catch (evtErr) {
+      console.error("emitDomainEvent(return.pickup_scheduled) failed:", evtErr);
+    }
 
     // IMPORTANT FIX: dispatch should use partner shipment id when present
     if (driverId) {
@@ -1602,6 +1662,25 @@ router.post(
         },
       }
     );
+
+    try {
+      await emitDomainEvent({
+        type: "return.pickup_scheduled",
+        actor: { role: "admin", id: actorId },
+        refs: {
+          returnId: String(rid),
+          orderId: String(ret.orderId || ""),
+          sellerId: String(ret.sellerId || ""),
+          customerId: String(ret.customerId || ""),
+        },
+        payload: {
+          trackingNumber: trackingNumber || null,
+        },
+        dedupeKey: `return.pickup_scheduled:${String(rid)}:${trackingNumber || "na"}`,
+      });
+    } catch (evtErr) {
+      console.error("emitDomainEvent(return.pickup_scheduled reschedule) failed:", evtErr);
+    }
 
     const booking = await ReturnShipments.findOne({ _id: insertRes.insertedId });
     return res.json({ booking, rescheduled: true });

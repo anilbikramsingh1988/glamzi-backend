@@ -3,7 +3,7 @@ import { client } from "../dbConfig.js";
 
 dotenv.config();
 
-const DB_NAME = process.env.DB_NAME || "glamzi";
+const DB_NAME = process.env.DB_NAME || "glamzi_ecommerce";
 const db = client.db(DB_NAME);
 
 async function run() {
@@ -26,7 +26,7 @@ async function run() {
 
   await rateLimits.createIndex({ createdAt: 1 }, { expireAfterSeconds: 120 });
 
-  console.log("✅ Store follower indexes created");
+  console.log("Store follower indexes created");
   process.exit(0);
 }
 

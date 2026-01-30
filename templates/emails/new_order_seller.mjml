@@ -1,0 +1,3 @@
+<mj-text font-size="16px" font-weight="bold">New order received</mj-text>
+<mj-text>Hi {{sellerName}}, you have a new order <strong>{{orderNumber}}</strong>.</mj-text>
+<mj-button href="{{sellerLink}}" background-color="#ec4899" color="#ffffff">View Orders</mj-button>

@@ -7,7 +7,7 @@ import { FOLLOW_TZ } from "../utils/storeFollowUtils.js";
 
 dotenv.config();
 
-const DB_NAME = process.env.DB_NAME || "glamzi";
+const DB_NAME = process.env.DB_NAME || "glamzi_ecommerce";
 const db = client.db(DB_NAME);
 const Followers = db.collection("storeFollowers");
 const Events = db.collection("storeFollowerEvents");

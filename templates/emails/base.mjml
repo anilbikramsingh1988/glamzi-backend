@@ -1,0 +1,23 @@
+<mjml>
+  <mj-body background-color="#f8fafc">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-image width="140px" src="{{brandLogoUrl}}" alt="Glamzi" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="10px 20px">
+      <mj-column>
+        {{{body}}}
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="12px" color="#6b7280">
+          You are receiving this email from Glamzi Beauty.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

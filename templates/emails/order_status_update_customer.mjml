@@ -1,0 +1,3 @@
+<mj-text font-size="16px" font-weight="bold">Order update</mj-text>
+<mj-text>Your order <strong>{{orderNumber}}</strong> is now <strong>{{status}}</strong>.</mj-text>
+<mj-button href="{{orderLink}}" background-color="#ec4899" color="#ffffff">Track Order</mj-button>

@@ -11,6 +11,7 @@ import { applyDiscounts } from "../utils/discountEngine.js";
 import multer from "multer";
 import { bookShipmentFactory, bookReturnShipment } from "../utils/shippingBridge.js";
 import { enqueueNotification } from "../utils/outbox.js";
+import { emitDomainEvent } from "../services/events/emitDomainEvent.js";
 
 const router = express.Router();
 
@@ -2471,6 +2472,46 @@ router.post("/", authMiddleware, async (req, res) => {
       console.error("Customer order notification error:", notifyErr);
     }
 
+    // Domain event: order placed (customer)
+    try {
+      await emitDomainEvent({
+        type: "order.placed",
+        actor: { role: "customer", id: String(orderDocOut.userId || "") },
+        refs: { orderId: String(insertedId), customerId: String(orderDocOut.userId || "") },
+        payload: { orderNumber: orderDocOut.orderNumber || "" },
+        dedupeKey: `order.placed:${String(insertedId)}`,
+      });
+    } catch (evtErr) {
+      console.error("emitDomainEvent(order.placed) failed:", evtErr);
+    }
+
+    // Domain events: order placed for each seller
+    try {
+      const sellerIds = Array.from(
+        new Set(
+          orderDocOut.items
+            .map((item) => item?.sellerId || item?.seller?._id || item?.seller?.id || null)
+            .filter(Boolean)
+            .map((id) => String(id))
+        )
+      );
+      for (const sellerId of sellerIds) {
+        await emitDomainEvent({
+          type: "order.placed.seller",
+          actor: { role: "system" },
+          refs: {
+            orderId: String(insertedId),
+            sellerId,
+            customerId: String(orderDocOut.userId || ""),
+          },
+          payload: { orderNumber: orderDocOut.orderNumber || "" },
+          dedupeKey: `order.placed.seller:${String(insertedId)}:${sellerId}`,
+        });
+      }
+    } catch (evtErr) {
+      console.error("emitDomainEvent(order.placed.seller) failed:", evtErr);
+    }
+
     // Commit flash reservations (move reserved -> sold)
     if (insertedId && commitReservations.length > 0) {
       const commitNow = new Date();
@@ -2739,6 +2780,26 @@ router.patch("/seller/status", authMiddleware, async (req, res) => {
       const after = await Orders.findOne({ _id: oid });
       const overall = deriveOverallStatus(after?.sellerFulfillment || {});
       await Orders.updateOne({ _id: oid }, { $set: { status: overall, updatedAt: now } });
+
+      // Domain event: seller status changed
+      try {
+        await emitDomainEvent({
+          type: "order.seller_status_changed",
+          actor: { role: "seller", id: sellerIdStr },
+          refs: {
+            orderId: String(oid),
+            sellerId: sellerIdStr,
+            customerId: String(after?.userId || ""),
+          },
+          payload: {
+            orderNumber: after?.orderNumber || "",
+            status: target,
+          },
+          dedupeKey: `order.seller_status_changed:${String(oid)}:${sellerIdStr}:${target}`,
+        });
+      } catch (evtErr) {
+        console.error("emitDomainEvent(order.seller_status_changed) failed:", evtErr);
+      }
 
       if (target === "shipped") {
         try {

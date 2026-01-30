@@ -1,0 +1,3 @@
+<mj-text font-size="16px" font-weight="bold">Return {{decision}}</mj-text>
+<mj-text>Your return request for order <strong>{{orderNumber}}</strong> was {{decision}}.</mj-text>
+<mj-button href="{{returnLink}}" background-color="#ec4899" color="#ffffff">View Returns</mj-button>

@@ -7,3 +7,7 @@ cronJobs:
     env: node
     schedule: "*/1 * * * *"
     command: "node jobs/processOutboxOnce.js"
+  - name: glamzi-notify-worker
+    env: node
+    schedule: "*/1 * * * *"
+    command: "node workers/notificationWorker.js --once"
