@@ -79,6 +79,50 @@ async function getNotificationSettings() {
   );
 }
 
+router.get("/health", authMiddleware, isStaffMiddleware, async (req, res) => {
+  try {
+    const [
+      pending,
+      processing,
+      failed,
+      dead,
+      deliveriesQueued,
+      deliveriesSent,
+      deliveriesFailed,
+    ] = await Promise.all([
+      DomainEvents.countDocuments({ status: "pending" }),
+      DomainEvents.countDocuments({ status: "processing" }),
+      DomainEvents.countDocuments({ status: "failed" }),
+      DomainEvents.countDocuments({ status: "dead" }),
+      NotificationDeliveries.countDocuments({ status: "queued" }),
+      NotificationDeliveries.countDocuments({ status: "sent" }),
+      NotificationDeliveries.countDocuments({ status: "failed" }),
+    ]);
+
+    const latestEvent = await DomainEvents.find({})
+      .sort({ updatedAt: -1 })
+      .limit(1)
+      .project({ type: 1, status: 1, updatedAt: 1 })
+      .toArray();
+
+    res.json({
+      ok: true,
+      data: {
+        events: { pending, processing, failed, dead },
+        deliveries: {
+          queued: deliveriesQueued,
+          sent: deliveriesSent,
+          failed: deliveriesFailed,
+        },
+        latestEvent: latestEvent[0] || null,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching notifications health:", error);
+    res.status(500).json({ ok: false, error: { code: "HEALTH", message: "Failed to fetch notifications health" } });
+  }
+});
+
 router.get("/campaigns", authMiddleware, isStaffMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
