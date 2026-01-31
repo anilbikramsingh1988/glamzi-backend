@@ -11,3 +11,14 @@ cronJobs:
     env: node
     schedule: "*/1 * * * *"
     command: "node workers/notificationWorker.js --once"
+
+services:
+  - name: glamzi-notifications-worker
+    type: worker
+    env: node
+    plan: starter
+    branch: main
+    rootDir: .
+    buildCommand: npm install
+    startCommand: node workers/notificationWorker.js
+    autoDeploy: true
