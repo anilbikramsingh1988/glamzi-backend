@@ -1,5 +1,5 @@
 import os from "os";
-import { client } from "../dbConfig.js";
+import { client, getDB } from "../dbConfig.js";
 import { notifySeller, notifyCustomer, notifyAdmin } from "../utils/notify.js";
 
 const db = client.db(process.env.DB_NAME || "glamzi_ecommerce");
@@ -35,6 +35,8 @@ async function processOne() {
 
   const job = claimed?.value;
   if (!job) return false;
+  // eslint-disable-next-line no-console
+  console.log("[outbox][claim]", { id: String(job._id || ""), type: job.type, attempts: job.attempts || 0 });
 
   try {
     const type = String(job.type || "");
@@ -50,6 +52,8 @@ async function processOne() {
       throw new Error(`Unknown outbox type: ${type}`);
     }
 
+    // eslint-disable-next-line no-console
+    console.log("[outbox][done]", { id: String(job._id || ""), type });
     await Outbox.updateOne(
       { _id: job._id },
       {
@@ -62,7 +66,11 @@ async function processOne() {
       }
     );
   } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[outbox][error]", { id: String(job?._id || ""), type: job?.type, error: err?.message || String(err) });
     const nextRunAt = new Date(Date.now() + backoffMs(job.attempts || 1));
+    // eslint-disable-next-line no-console
+    console.log("[outbox][done]", { id: String(job._id || ""), type });
     await Outbox.updateOne(
       { _id: job._id },
       {
@@ -90,12 +98,15 @@ export async function processOutboxBatch(limit = BATCH_LIMIT) {
 }
 
 async function run() {
+  await getDB();
   // eslint-disable-next-line no-console
   console.log(`[outbox] worker started (${WORKER_ID})`);
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const count = await processOutboxBatch(BATCH_LIMIT);
     if (count === 0) {
+      // eslint-disable-next-line no-console
+      console.log("[outbox][idle] no jobs");
       await new Promise((r) => setTimeout(r, POLL_MS));
     }
   }
