@@ -22,3 +22,12 @@ services:
     buildCommand: npm install
     startCommand: node workers/notificationWorker.js
     autoDeploy: true
+  - name: glamzi-outbox-worker
+    type: worker
+    env: node
+    plan: starter
+    branch: main
+    rootDir: .
+    buildCommand: npm install
+    startCommand: node workers/outboxWorker.js
+    autoDeploy: true
