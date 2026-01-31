@@ -37,6 +37,14 @@ function applyBaseHead(mjmlRaw) {
   return mjmlRaw.replace("<mjml>", `<mjml>\n  <mj-head>\n${baseHead}\n  </mj-head>`);
 }
 
+function normalizeMjmlClasses(mjmlRaw) {
+  if (!mjmlRaw) return mjmlRaw;
+  // MJML expects css-class; normalize any legacy class attributes.
+  return mjmlRaw
+    .replace(/\bclass="/g, 'css-class="')
+    .replace(/\bclass='/g, "css-class='");
+}
+
 export async function renderTemplateByKey({ templateKey, variables = {} }) {
   const db = await connectDb();
   const settings = (await db.collection("emailSettings").findOne({ _id: "default" })) || {};
@@ -83,7 +91,7 @@ export async function renderTemplateByKey({ templateKey, variables = {} }) {
     mjmlRaw = version.mjmlRaw || "";
   }
 
-  const compiled = Handlebars.compile(applyBaseHead(mjmlRaw));
+  const compiled = Handlebars.compile(normalizeMjmlClasses(applyBaseHead(mjmlRaw)));
   const hydrated = compiled(mergedVariables);
   const { html, errors } = mjml2html(hydrated, { validationLevel: "soft" });
 
