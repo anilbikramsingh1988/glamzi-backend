@@ -135,9 +135,14 @@ function normalizeMjml(mjmlRaw) {
   }
   // Normalize legacy class -> css-class for MJML
   cleaned = cleaned
-    .replace(/css-css-class\s*=/g, "css-class=")
+    .replace(/css-+css-class\s*=/gi, "css-class=")
+    .replace(/css-css-class/gi, "css-class")
     .replace(/\bclass="/g, 'css-class="')
     .replace(/\bclass='/g, "css-class='");
+  // Collapse any accidental double prefix
+  while (cleaned.includes("css-css-class")) {
+    cleaned = cleaned.replace(/css-css-class/gi, "css-class");
+  }
   return cleaned;
 }
 
