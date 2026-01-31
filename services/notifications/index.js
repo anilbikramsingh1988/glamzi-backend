@@ -102,9 +102,18 @@ export async function deliverEmail({
     throw err;
   }
 
+  // eslint-disable-next-line no-console
+  console.log("[notify][deliver]", {
+    eventId: String(eventId || ""),
+    templateId,
+    to: redactEmail(to),
+    dedupeKey,
+  });
   const { html } = renderEmail(templateId, templateData);
   const text = templateData?.plainText || "";
 
+  let result;
+  try {
   const result = await sendEmail({
     to,
     subject,
@@ -113,6 +122,17 @@ export async function deliverEmail({
     customArgs: { eventId: String(eventId || "") },
     attachments,
   });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[notify][send-error]", {
+      eventId: String(eventId || ""),
+      templateId,
+      to: redactEmail(to),
+      dedupeKey,
+      error: err?.message || String(err),
+    });
+    throw err;
+  }
 
   await NotificationDeliveries.updateOne(
     { dedupeKey },
@@ -131,6 +151,12 @@ export async function deliverEmail({
 export async function handleEvent(event) {
   const settings = await getSettings();
   const type = String(event.type || "");
+  // eslint-disable-next-line no-console
+  console.log("[notify][event]", {
+    type,
+    eventId: String(event._id || ""),
+    dedupeKey: event.dedupeKey || "",
+  });
 
   if (settings.emailEnabledByType?.[type] === false) {
     return { skipped: true, reason: "disabled_by_settings" };

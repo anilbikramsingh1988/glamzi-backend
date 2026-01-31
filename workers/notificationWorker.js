@@ -101,6 +101,12 @@ async function markDead(event, err) {
 async function processOne() {
   const event = await claimOne();
   if (!event) return false;
+  // eslint-disable-next-line no-console
+  console.log("[notify-worker][claim]", {
+    eventId: String(event._id || ""),
+    type: event.type,
+    attempts: event.attempts || 0,
+  });
 
   try {
     const settings = await getSettings();
@@ -110,12 +116,25 @@ async function processOne() {
     }
 
     const res = await handleEvent(event);
+    // eslint-disable-next-line no-console
+    console.log("[notify-worker][handled]", {
+      eventId: String(event._id || ""),
+      type: event.type,
+      skipped: Boolean(res?.skipped),
+      reason: res?.reason || null,
+    });
     if (res?.skipped) {
       await markProcessed(event, res.reason || "skipped");
     } else {
       await markProcessed(event);
     }
   } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[notify-worker][error]", {
+      eventId: String(event?._id || ""),
+      type: event?.type,
+      error: err?.message || String(err),
+    });
     if ((event.attempts || 1) >= MAX_ATTEMPTS) {
       await markDead(event, err);
     } else {
