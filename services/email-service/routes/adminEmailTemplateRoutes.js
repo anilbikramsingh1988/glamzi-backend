@@ -51,7 +51,7 @@ const versionSchema = z.object({
 function buildSampleVariables(allowed = []) {
   const defaults = {
     brandName: "Glamzi Beauty",
-    brandLogoUrl: "https://glamzibeauty.com/favicon.png",
+    brandLogoUrl: "https://glamzibeauty.com/assets/logo-2cb1acee.webp",
     brandPrimaryColor: "#e11d48",
     supportEmail: "support@glamzibeauty.com",
     supportPhone: "01-000000",
