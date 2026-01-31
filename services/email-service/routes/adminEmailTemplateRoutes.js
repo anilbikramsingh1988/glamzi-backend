@@ -135,7 +135,7 @@ function normalizeMjml(mjmlRaw) {
   }
   // Normalize legacy class -> css-class for MJML
   cleaned = cleaned
-    .replace(/\bcss-css-class=/g, "css-class=")
+    .replace(/css-css-class\s*=/g, "css-class=")
     .replace(/\bclass="/g, 'css-class="')
     .replace(/\bclass='/g, "css-class='");
   return cleaned;
@@ -236,7 +236,7 @@ router.post("/:templateKey/versions", requireAdminOrInternal, async (req, res) =
     const sampleVars = buildSampleVariables(template.allowedVariables || []);
     const normalized = normalizeMjml(payload.mjmlRaw);
     const hydrated = Handlebars.compile(normalized)(sampleVars);
-    const compiled = mjml2html(hydrated, { validationLevel: "soft" });
+    const compiled = mjml2html(normalizeMjml(hydrated), { validationLevel: "soft" });
     if (compiled.errors?.length) {
       return res.status(400).json({ ok: false, error: { code: "MJML", message: "MJML validation errors", details: compiled.errors } });
     }
