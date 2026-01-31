@@ -41,7 +41,7 @@ const contentBlocksSchema = z.object({
 });
 
 const versionSchema = z.object({
-  subject: z.string().max(200),
+  subject: z.string().max(200).optional(),
   previewText: z.string().max(200).optional(),
   mjmlRaw: z.string().max(150000).optional(),
   contentBlocks: contentBlocksSchema.optional(),
@@ -228,7 +228,7 @@ router.post("/:templateKey/versions", requireAdminOrInternal, async (req, res) =
     templateKey,
     version: nextVersion,
     status: "draft",
-    subject: payload.subject,
+    subject: payload.subject || latest?.subject || templateKey,
     previewText: payload.previewText || "",
     mjmlRaw: payload.mjmlRaw || null,
     contentBlocks: payload.contentBlocks || null,
