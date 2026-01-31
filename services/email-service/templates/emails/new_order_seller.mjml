@@ -16,44 +16,46 @@
 
   <mj-body background-color="#f9fafb">
     <mj-section background-color="#ffffff" padding="18px 18px 8px">
-      <mj-column>
-        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
-      </mj-column>
-    </mj-section>
+  <mj-column>
+    <mj-image width="140px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" padding="0"/>
+  </mj-column>
+</mj-section>
+<mj-divider border-color="{{brandPrimaryColor}}" border-width="4px" padding="0"/>
+
 
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="18px" font-weight="800">You have a new order 🎉</mj-text>
-        <mj-text css-class="muted">
+        <mj-text style="color:#6b7280;">
           Store: <strong>{{sellerStoreName}}</strong><br/>
-          Order: <span css-class="pill">{{orderNumber}}</span>
+          Order: <span style="display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb;">{{orderNumber}}</span>
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-css-class="card" padding="14px">
+      <mj-column css-class="card" padding="14px">
         <mj-text font-weight="700">Your items to fulfill</mj-text>
 
         {{#if items}}
           {{#each items}}
             <mj-text>
               <strong>{{name}}</strong>
-              {{#if variant}}<span css-class="muted"> • {{variant}}</span>{{/if}}
+              {{#if variant}}<span style="color:#6b7280;"> • {{variant}}</span>{{/if}}
               <br/>
-              <span css-class="muted">Qty:</span> {{qty}}
-              <span css-class="muted"> • Item total:</span> {{lineTotal}}
+              <span style="color:#6b7280;">Qty:</span> {{qty}}
+              <span style="color:#6b7280;"> • Item total:</span> {{lineTotal}}
             </mj-text>
           {{/each}}
         {{else}}
-          <mj-text css-class="muted">Items will appear once synced.</mj-text>
+          <mj-text style="color:#6b7280;">Items will appear once synced.</mj-text>
         {{/if}}
 
         <mj-divider border-color="#e5e7eb" />
 
         <mj-text>
-          <span css-class="muted">Segment subtotal:</span> {{segmentSubtotal}}<br/>
-          {{#if segmentShipping}}<span css-class="muted">Shipping:</span> {{segmentShipping}}<br/>{{/if}}
+          <span style="color:#6b7280;">Segment subtotal:</span> {{segmentSubtotal}}<br/>
+          {{#if segmentShipping}}<span style="color:#6b7280;">Shipping:</span> {{segmentShipping}}<br/>{{/if}}
           <strong>Segment total:</strong> {{segmentTotal}}
         </mj-text>
 

@@ -11,53 +11,57 @@
       .small { font-size: 12px; }
       .card { border: 1px solid #e5e7eb; border-radius: 14px; }
       .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb; }
+      .primary-btn { box-shadow: 0 3px 12px rgba(242,42,131,0.25); }
     </mj-style>
   </mj-head>
 
   <mj-body background-color="#f9fafb">
     <!-- Header -->
     <mj-section background-color="#ffffff" padding="18px 18px 8px">
-      <mj-column>
-        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
-      </mj-column>
-    </mj-section>
+  <mj-column>
+    <mj-image width="140px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" padding="0"/>
+  </mj-column>
+</mj-section>
+<mj-divider border-color="{{brandPrimaryColor}}" border-width="4px" padding="0"/>
+
 
     <!-- Hero -->
-    <mj-section background-color="#ffffff" padding="8px 18px 0px">
+    <mj-section background-color="#ffffff" padding="12px 18px">
       <mj-column>
-        <mj-text font-size="20px" font-weight="800">Your order is confirmed 💖</mj-text>
-        <mj-text css-class="muted">
-          Hi {{customerName}}, we’ve received your order <span css-class="pill">{{orderNumber}}</span>.
-          We’ll notify you when it ships.
+        <mj-text font-size="24px" font-weight="800" color="{{brandPrimaryColor}}">Order Confirmed ✨</mj-text>
+        <mj-text color="#374151">
+          Hi {{customerName}}, thank you for shopping with <strong>{{brandName}}</strong>!
+          <br/>
+          Your order <span style="display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb;">{{orderNumber}}</span> has been received and is now being processed.
         </mj-text>
       </mj-column>
     </mj-section>
 
     <!-- Order Summary -->
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-css-class="card" padding="14px">
+      <mj-column css-class="card" padding="14px">
         <mj-text font-weight="700">Order summary</mj-text>
 
         {{#if items}}
           {{#each items}}
             <mj-text>
               <strong>{{name}}</strong>
-              {{#if variant}}<span css-class="muted"> • {{variant}}</span>{{/if}}
+              {{#if variant}}<span style="color:#6b7280;"> • {{variant}}</span>{{/if}}
               <br/>
-              <span css-class="muted">Qty:</span> {{qty}}
-              <span css-class="muted"> • Price:</span> {{price}}
+              <span style="color:#6b7280;">Qty:</span> {{qty}}
+              <span style="color:#6b7280;"> • Price:</span> {{price}}
             </mj-text>
           {{/each}}
         {{else}}
-          <mj-text css-class="muted">Your items will appear here once synced.</mj-text>
+          <mj-text style="color:#6b7280;">Your items will appear here once synced.</mj-text>
         {{/if}}
 
         <mj-divider border-color="#e5e7eb" />
 
         <mj-text>
-          <span css-class="muted">Subtotal:</span> {{subtotal}}<br/>
-          <span css-class="muted">Shipping:</span> {{shipping}}<br/>
-          {{#if discount}}<span css-class="muted">Discount:</span> -{{discount}}<br/>{{/if}}
+          <span style="color:#6b7280;">Subtotal:</span> {{subtotal}}<br/>
+          <span style="color:#6b7280;">Shipping:</span> {{shipping}}<br/>
+          {{#if discount}}<span style="color:#6b7280;">Discount:</span> -{{discount}}<br/>{{/if}}
           <strong>Total:</strong> {{total}}
         </mj-text>
 
@@ -70,7 +74,17 @@
     <!-- CTA -->
     <mj-section background-color="#ffffff" padding="4px 18px 18px">
       <mj-column>
-        <mj-button href="{{orderLink}}">View your order</mj-button>
+        <mj-button
+          background-color="{{brandPrimaryColor}}"
+          inner-padding="14px 22px"
+          border-radius="12px"
+          color="#ffffff"
+          font-size="15px"
+          href="{{orderLink}}"
+          css-class="primary-btn"
+        >
+          View Order Details
+        </mj-button>
         <mj-text css-class="muted small" padding-top="10px">
           ✓ FREE DELIVERY ✓ FREE RETURNS
         </mj-text>

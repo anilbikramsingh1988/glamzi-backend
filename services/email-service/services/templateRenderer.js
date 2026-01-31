@@ -39,6 +39,7 @@ function applyBaseHead(mjmlRaw) {
 
 export async function renderTemplateByKey({ templateKey, variables = {} }) {
   const db = await connectDb();
+  const settings = (await db.collection("emailSettings").findOne({ _id: "default" })) || {};
   const template = await db.collection("emailTemplates").findOne({ key: templateKey });
   if (!template) {
     return { ok: false, error: { code: "NOT_FOUND", message: "Template not found" } };
@@ -58,15 +59,32 @@ export async function renderTemplateByKey({ templateKey, variables = {} }) {
     return { ok: false, error: { code: "INVALID_VARIABLES", message: "Unknown variables", details: unknown } };
   }
 
+  const globalDefaults = {
+    brandName: settings.brandName || "Glamzi",
+    brandLogoUrl: settings.brandLogoUrl || "",
+    brandPrimaryColor: settings.brandPrimaryColor || "#F22A83",
+    brandSecondaryColor: settings.brandSecondaryColor || "#FFE3F0",
+    supportEmail: settings.supportEmail || "support@glamzibeauty.com",
+    supportPhone: settings.supportPhone || "",
+    footerNotice: settings.footerNotice || "✓ FREE DELIVERY ✓ FREE RETURNS",
+    appUrl: settings.appUrl || "https://glamzibeauty.com",
+    year: new Date().getFullYear(),
+  };
+
+  const mergedVariables = { ...globalDefaults, ...variables };
+
   let mjmlRaw = "";
   if (template.isBlockEditable) {
-    mjmlRaw = mergeTransactionalBlocks({ contentBlocks: version.contentBlocks || {}, variables: { ...variables, previewText: version.previewText || "" } });
+    mjmlRaw = mergeTransactionalBlocks({
+      contentBlocks: version.contentBlocks || {},
+      variables: { ...mergedVariables, previewText: version.previewText || "" },
+    });
   } else {
     mjmlRaw = version.mjmlRaw || "";
   }
 
   const compiled = Handlebars.compile(applyBaseHead(mjmlRaw));
-  const hydrated = compiled(variables);
+  const hydrated = compiled(mergedVariables);
   const { html, errors } = mjml2html(hydrated, { validationLevel: "soft" });
 
   return {

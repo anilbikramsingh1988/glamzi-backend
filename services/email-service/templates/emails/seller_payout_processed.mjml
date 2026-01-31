@@ -16,28 +16,30 @@
 
   <mj-body background-color="#f9fafb">
     <mj-section background-color="#ffffff" padding="18px 18px 8px">
-      <mj-column>
-        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
-      </mj-column>
-    </mj-section>
+  <mj-column>
+    <mj-image width="140px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" padding="0"/>
+  </mj-column>
+</mj-section>
+<mj-divider border-color="{{brandPrimaryColor}}" border-width="4px" padding="0"/>
+
 
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="18px" font-weight="800">Payout processed</mj-text>
-        <mj-text css-class="muted">
+        <mj-text style="color:#6b7280;">
           Store: <strong>{{sellerStoreName}}</strong><br/>
-          Batch: <span css-class="pill">{{payoutBatch}}</span>
+          Batch: <span style="display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb;">{{payoutBatch}}</span>
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-css-class="card" padding="14px">
+      <mj-column css-class="card" padding="14px">
         <mj-text font-weight="700">Payout summary</mj-text>
         <mj-text>
-          <span css-class="muted">Amount:</span> {{payoutAmount}}<br/>
-          <span css-class="muted">Method:</span> {{payoutMethod}}<br/>
-          {{#if payoutReference}}<span css-class="muted">Reference:</span> {{payoutReference}}<br/>{{/if}}
+          <span style="color:#6b7280;">Amount:</span> {{payoutAmount}}<br/>
+          <span style="color:#6b7280;">Method:</span> {{payoutMethod}}<br/>
+          {{#if payoutReference}}<span style="color:#6b7280;">Reference:</span> {{payoutReference}}<br/>{{/if}}
         </mj-text>
       </mj-column>
     </mj-section>

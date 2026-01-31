@@ -16,28 +16,30 @@
 
   <mj-body background-color="#f9fafb">
     <mj-section background-color="#ffffff" padding="18px 18px 8px">
-      <mj-column>
-        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
-      </mj-column>
-    </mj-section>
+  <mj-column>
+    <mj-image width="140px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" padding="0"/>
+  </mj-column>
+</mj-section>
+<mj-divider border-color="{{brandPrimaryColor}}" border-width="4px" padding="0"/>
+
 
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="20px" font-weight="800">Your order was cancelled</mj-text>
-        <mj-text css-class="muted">
-          Order <span css-class="pill">{{orderNumber}}</span> has been cancelled.
+        <mj-text style="color:#6b7280;">
+          Order <span style="display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb;">{{orderNumber}}</span> has been cancelled.
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-css-class="card" padding="14px">
+      <mj-column css-class="card" padding="14px">
         <mj-text font-weight="700">Cancellation details</mj-text>
         {{#if cancelReason}}
-          <mj-text css-class="muted">Reason: {{cancelReason}}</mj-text>
+          <mj-text style="color:#6b7280;">Reason: {{cancelReason}}</mj-text>
         {{/if}}
         {{#if refundStatus}}
-          <mj-text css-class="muted">Refund: {{refundStatus}}</mj-text>
+          <mj-text style="color:#6b7280;">Refund: {{refundStatus}}</mj-text>
         {{/if}}
       </mj-column>
     </mj-section>

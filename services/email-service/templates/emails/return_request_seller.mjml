@@ -16,40 +16,42 @@
 
   <mj-body background-color="#f9fafb">
     <mj-section background-color="#ffffff" padding="18px 18px 8px">
-      <mj-column>
-        <mj-image width="120px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" />
-      </mj-column>
-    </mj-section>
+  <mj-column>
+    <mj-image width="140px" src="{{brandLogoUrl}}" alt="{{brandName}}" align="left" padding="0"/>
+  </mj-column>
+</mj-section>
+<mj-divider border-color="{{brandPrimaryColor}}" border-width="4px" padding="0"/>
+
 
     <mj-section background-color="#ffffff" padding="8px 18px 0px">
       <mj-column>
         <mj-text font-size="18px" font-weight="800">Return request for your items</mj-text>
-        <mj-text css-class="muted">
-          Return: <span css-class="pill">{{returnReference}}</span><br/>
+        <mj-text style="color:#6b7280;">
+          Return: <span style="display:inline-block; padding:4px 10px; border-radius:999px; background:#f9fafb; border:1px solid #e5e7eb;">{{returnReference}}</span><br/>
           Order: <strong>{{orderNumber}}</strong>
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#ffffff" padding="12px 18px">
-      <mj-column css-css-class="card" padding="14px">
+      <mj-column css-class="card" padding="14px">
         <mj-text font-weight="700">Items affected (your store only)</mj-text>
 
         {{#if items}}
           {{#each items}}
             <mj-text>
               <strong>{{name}}</strong>
-              <span css-class="muted"> • Qty:</span> {{qty}}
-              {{#if reason}}<br/><span css-class="muted">Reason:</span> {{reason}}{{/if}}
+              <span style="color:#6b7280;"> • Qty:</span> {{qty}}
+              {{#if reason}}<br/><span style="color:#6b7280;">Reason:</span> {{reason}}{{/if}}
             </mj-text>
           {{/each}}
         {{else}}
-          <mj-text css-class="muted">Items will appear once synced.</mj-text>
+          <mj-text style="color:#6b7280;">Items will appear once synced.</mj-text>
         {{/if}}
 
         {{#if sellerActionDeadline}}
           <mj-divider border-color="#e5e7eb" />
-          <mj-text css-class="muted">Please respond by: <strong>{{sellerActionDeadline}}</strong></mj-text>
+          <mj-text style="color:#6b7280;">Please respond by: <strong>{{sellerActionDeadline}}</strong></mj-text>
         {{/if}}
       </mj-column>
     </mj-section>
