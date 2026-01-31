@@ -8,7 +8,25 @@ const NotificationDeliveries = db.collection("notificationDeliveries");
 const NotificationSettings = db.collection("notificationSettings");
 
 const APP_PUBLIC_URL = process.env.APP_PUBLIC_URL || "https://glamzibeauty.com";
-const BRAND_LOGO_URL = process.env.BRAND_LOGO_URL || `${APP_PUBLIC_URL}/favicon.png`;
+const BRAND_LOGO_URL =
+  process.env.BRAND_LOGO_URL || `${APP_PUBLIC_URL}/assets/logo-2cb1acee.webp`;
+const BRAND_PRIMARY_COLOR = process.env.BRAND_PRIMARY_COLOR || "#F22A83";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@glamzibeauty.com";
+const SELLER_SUPPORT_EMAIL =
+  process.env.SELLER_SUPPORT_EMAIL || "seller-support@glamzibeauty.com";
+const SETTLEMENTS_EMAIL =
+  process.env.SETTLEMENTS_EMAIL || "settlements@glamzibeauty.com";
+
+function baseTemplateVars(extra = {}) {
+  return {
+    brandLogoUrl: BRAND_LOGO_URL,
+    brandName: "Glamzi Beauty",
+    brandPrimaryColor: BRAND_PRIMARY_COLOR,
+    supportEmail: SUPPORT_EMAIL,
+    year: new Date().getFullYear(),
+    ...extra,
+  };
+}
 
 function redactEmail(email) {
   if (!email) return "";
@@ -125,14 +143,13 @@ export async function handleEvent(event) {
     const customer = await resolveCustomerEmail(customerId);
     if (!customer?.email) return { skipped: true, reason: "missing_customer_email" };
 
-    const subject = `Order placed - ${event.payload?.orderNumber || "Glamzi"}`;
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
+    const orderNumber = event.payload?.orderNumber || "";
+    const subject = `Order placed - ${orderNumber || "Glamzi"}`;
+    const templateData = baseTemplateVars({
       customerName: customer.name,
-      orderNumber: event.payload?.orderNumber || "",
+      orderNumber,
       orderLink: `${APP_PUBLIC_URL}/orders`,
-      plainText: `Your order ${event.payload?.orderNumber || ""} was placed successfully.`,
-    };
+    });
     const dedupeKey = `email:order.placed:${customer.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
@@ -151,23 +168,35 @@ export async function handleEvent(event) {
     const customer = await resolveCustomerEmail(customerId);
     if (!customer?.email) return { skipped: true, reason: "missing_customer_email" };
 
-    const status = event.payload?.status || "updated";
-    const subject = `Order update - ${event.payload?.orderNumber || ""}`;
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
+    const status = String(event.payload?.status || "updated").toLowerCase();
+    const orderNumber = event.payload?.orderNumber || "";
+    let templateId = "order_shipped_customer";
+    if (status === "delivered" || status === "completed") {
+      templateId = "order_delivered_customer";
+    }
+    if (status === "cancelled" || status === "canceled") {
+      templateId = "order_cancelled_customer";
+    }
+    const subject = `Order update - ${orderNumber || ""}`;
+    const templateData = baseTemplateVars({
       customerName: customer.name,
-      orderNumber: event.payload?.orderNumber || "",
-      status,
+      orderNumber,
+      trackingNumber: event.payload?.trackingNumber || "",
+      courier: event.payload?.courier || "",
+      eta: event.payload?.eta || "",
+      trackingLink: `${APP_PUBLIC_URL}/orders`,
+      cancelReason: event.payload?.cancelReason || "",
+      refundStatus: event.payload?.refundStatus || "",
+      supportLink: `${APP_PUBLIC_URL}/contact`,
       orderLink: `${APP_PUBLIC_URL}/orders`,
-      plainText: `Your order status is now ${status}.`,
-    };
+    });
     const dedupeKey = `email:order.status_changed:${customer.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
       dedupeKey,
       to: customer.email,
       subject,
-      templateId: "order_status_update_customer",
+      templateId,
       templateData,
     });
   }
@@ -179,14 +208,16 @@ export async function handleEvent(event) {
     const customer = await resolveCustomerEmail(customerId);
     if (!customer?.email) return { skipped: true, reason: "missing_customer_email" };
 
-    const subject = `Return request received - ${event.payload?.orderNumber || ""}`;
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
+    const orderNumber = event.payload?.orderNumber || "";
+    const subject = `Return request received - ${orderNumber || ""}`;
+    const templateData = baseTemplateVars({
       customerName: customer.name,
-      orderNumber: event.payload?.orderNumber || "",
+      returnReference: event.payload?.returnReference || "",
+      orderNumber,
+      expectedResponseWindow: event.payload?.expectedResponseWindow || "",
+      items: event.payload?.items || [],
       returnLink: `${APP_PUBLIC_URL}/returns`,
-      plainText: `Your return request for order ${event.payload?.orderNumber || ""} is under review.`,
-    };
+    });
     const dedupeKey = `email:return.created:${customer.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
@@ -205,16 +236,18 @@ export async function handleEvent(event) {
     const customer = await resolveCustomerEmail(customerId);
     if (!customer?.email) return { skipped: true, reason: "missing_customer_email" };
 
-    const decision = event.payload?.decision || "updated";
-    const subject = `Return ${decision} — ${event.payload?.orderNumber || ""}`;
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
+    const decision = String(event.payload?.decision || "updated");
+    const orderNumber = event.payload?.orderNumber || "";
+    const subject = `Return ${decision} - ${orderNumber || ""}`;
+    const templateData = baseTemplateVars({
       customerName: customer.name,
-      orderNumber: event.payload?.orderNumber || "",
+      orderNumber,
       decision,
+      returnReference: event.payload?.returnReference || "",
+      decisionReason: event.payload?.decisionReason || "",
+      refundAmount: event.payload?.refundAmount || "",
       returnLink: `${APP_PUBLIC_URL}/returns`,
-      plainText: `Your return request for order ${event.payload?.orderNumber || ""} was ${decision}.`,
-    };
+    });
     const dedupeKey = `email:return.decision:${customer.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
@@ -233,14 +266,19 @@ export async function handleEvent(event) {
     const seller = await resolveSellerEmail(sellerId);
     if (!seller?.email) return { skipped: true, reason: "missing_seller_email" };
 
-    const subject = `New order received — ${event.payload?.orderNumber || ""}`;
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
-      sellerName: seller.name,
-      orderNumber: event.payload?.orderNumber || "",
-      sellerLink: `${APP_PUBLIC_URL}/seller/dashboard/orders/orderslisting`,
-      plainText: `You have a new order ${event.payload?.orderNumber || ""}.`,
-    };
+    const orderNumber = event.payload?.orderNumber || "";
+    const subject = `New order received - ${orderNumber || ""}`;
+    const templateData = baseTemplateVars({
+      sellerStoreName: seller.name,
+      orderNumber,
+      items: event.payload?.items || [],
+      segmentSubtotal: event.payload?.segmentSubtotal || "",
+      segmentShipping: event.payload?.segmentShipping || "",
+      segmentTotal: event.payload?.segmentTotal || "",
+      shipBy: event.payload?.shipBy || "",
+      sellerOrderLink: `${APP_PUBLIC_URL}/seller/dashboard/orders/orderslisting`,
+      sellerSupportEmail: SELLER_SUPPORT_EMAIL,
+    });
     const dedupeKey = `email:order.placed.seller:${seller.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
@@ -259,14 +297,17 @@ export async function handleEvent(event) {
     const seller = await resolveSellerEmail(sellerId);
     if (!seller?.email) return { skipped: true, reason: "missing_seller_email" };
 
-    const subject = `Return request - ${event.payload?.orderNumber || ""}`;
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
-      sellerName: seller.name,
-      orderNumber: event.payload?.orderNumber || "",
-      sellerLink: `${APP_PUBLIC_URL}/seller/dashboard/orders/returns`,
-      plainText: `Return requested for order ${event.payload?.orderNumber || ""}.`,
-    };
+    const orderNumber = event.payload?.orderNumber || "";
+    const subject = `Return request - ${orderNumber || ""}`;
+    const templateData = baseTemplateVars({
+      sellerStoreName: seller.name,
+      returnReference: event.payload?.returnReference || "",
+      orderNumber,
+      items: event.payload?.items || [],
+      sellerActionDeadline: event.payload?.sellerActionDeadline || "",
+      sellerReturnLink: `${APP_PUBLIC_URL}/seller/dashboard/orders/returns`,
+      sellerSupportEmail: SELLER_SUPPORT_EMAIL,
+    });
     const dedupeKey = `email:return.created.seller:${seller.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
@@ -286,15 +327,15 @@ export async function handleEvent(event) {
     if (!seller?.email) return { skipped: true, reason: "missing_seller_email" };
 
     const status = event.payload?.status || "updated";
-    const subject = `Order update - ${event.payload?.orderNumber || ""}`;
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
-      sellerName: seller.name,
-      orderNumber: event.payload?.orderNumber || "",
+    const orderNumber = event.payload?.orderNumber || "";
+    const subject = `Order update - ${orderNumber || ""}`;
+    const templateData = baseTemplateVars({
+      sellerStoreName: seller.name,
+      orderNumber,
       status,
-      sellerLink: `${APP_PUBLIC_URL}/seller/dashboard/orders/orderslisting`,
-      plainText: `Order ${event.payload?.orderNumber || ""} is now ${status}.`,
-    };
+      sellerOrderLink: `${APP_PUBLIC_URL}/seller/dashboard/orders/orderslisting`,
+      sellerSupportEmail: SELLER_SUPPORT_EMAIL,
+    });
     const dedupeKey = `email:order.seller_status_changed:${seller.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
@@ -326,16 +367,18 @@ export async function handleEvent(event) {
         ]
       : [];
 
-    const templateData = {
-      brandLogoUrl: BRAND_LOGO_URL,
-      sellerName: seller.name,
+    const templateData = baseTemplateVars({
+      sellerStoreName: seller.name,
       dateKey: event.payload?.dateKey || "",
-      reportUrl,
-      summary: event.payload?.summary || {},
-      plainText: reportUrl
-        ? `Your settlement report is ready: ${reportUrl}`
-        : `Your settlement report is attached.`,
-    };
+      grossSales: event.payload?.grossSales || "",
+      returnsTotal: event.payload?.returnsTotal || "",
+      commissionTotal: event.payload?.commissionTotal || "",
+      shippingTotal: event.payload?.shippingTotal || "",
+      netSettlement: event.payload?.netSettlement || "",
+      note: event.payload?.note || "",
+      sellerSettlementLink: reportUrl || `${APP_PUBLIC_URL}/seller/dashboard/finance/settlements`,
+      settlementsEmail: SETTLEMENTS_EMAIL,
+    });
     const dedupeKey = `email:settlement.report:${seller.email}:${event.dedupeKey}`;
     return deliverEmail({
       eventId: event._id,
@@ -347,6 +390,7 @@ export async function handleEvent(event) {
       attachments,
     });
   }
+
 
   return { skipped: true, reason: "unhandled_event" };
 }
