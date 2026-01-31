@@ -126,11 +126,23 @@ function parseVarsParam(value) {
   }
 }
 
+function normalizeMjml(mjmlRaw) {
+  if (!mjmlRaw) return mjmlRaw;
+  let cleaned = mjmlRaw;
+  // Strip BOM if present
+  if (cleaned.charCodeAt(0) === 0xfeff) {
+    cleaned = cleaned.slice(1);
+  }
+  // Normalize legacy class -> css-class for MJML
+  cleaned = cleaned.replace(/\bclass="/g, 'css-class="').replace(/\bclass='/g, "css-class='");
+  return cleaned;
+}
+
 async function buildMjmlFromVersion(template, version, variables) {
   if (template.isBlockEditable) {
     return mergeTransactionalBlocks({ contentBlocks: version.contentBlocks || {}, variables: { ...variables, previewText: version.previewText || "" } });
   }
-  return version.mjmlRaw || "";
+  return normalizeMjml(version.mjmlRaw || "");
 }
 
 router.get("/", requireAdminOrInternal, async (req, res) => {
@@ -218,7 +230,7 @@ router.post("/:templateKey/versions", requireAdminOrInternal, async (req, res) =
   }
 
   if (!template.isBlockEditable && payload.mjmlRaw) {
-    const compiled = mjml2html(payload.mjmlRaw, { validationLevel: "soft" });
+    const compiled = mjml2html(normalizeMjml(payload.mjmlRaw), { validationLevel: "soft" });
     if (compiled.errors?.length) {
       return res.status(400).json({ ok: false, error: { code: "MJML", message: "MJML validation errors", details: compiled.errors } });
     }
@@ -230,7 +242,7 @@ router.post("/:templateKey/versions", requireAdminOrInternal, async (req, res) =
     status: "draft",
     subject: payload.subject || latest?.subject || templateKey,
     previewText: payload.previewText || "",
-    mjmlRaw: payload.mjmlRaw || null,
+    mjmlRaw: payload.mjmlRaw ? normalizeMjml(payload.mjmlRaw) : null,
     contentBlocks: payload.contentBlocks || null,
     fallbackHtml: null,
     createdBy: req.body?.createdBy || "admin",
